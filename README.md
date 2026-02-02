@@ -13,11 +13,12 @@ Una volta che docker ha finito di creare tutti i container e le relative immagin
 ---
 ## Python Virtual Environment
 Per evitare di installare globalmente nel sistema le librerie necessarie per il PoC è stato creato un virtual environment (cartella .venv).
-Per avere la funzione di code completion del proprio editor/IDE è necessario avviare il venv.
+Per avere la funzione di code completion del proprio editor/IDE è necessario creare ed avviare il venv.
 Per farlo bisogna:
-1. Eseguire `source .venv/bin/activate` ==all'interno della cartella backend==.
-2. Eseguire `python install -r requirements.txt`
-3. Riavviare VsCode
+1. Eseguire `cd backend && python -m venv .venv`
+2. Eseguire `source .venv/bin/activate` 
+3. Eseguire `python install -r requirements.txt`
+4. Riavviare VsCode
 
 Se VsCode ancora non fornisce suggerimenti alle funzioni allora continuare a seguire i passaggi
 1. Premere `Ctrl+shift+P` (`Cmd+shift+P` Mac)
