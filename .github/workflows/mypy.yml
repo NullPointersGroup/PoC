@@ -1,4 +1,4 @@
-name: mypy type check
+name: Python Type Checks
 
 on:
   push:
@@ -25,6 +25,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: Run mypy
+      - name: Run mypy (static type check)
+        working-directory: backend
+        run: python -m mypy --config-file mypy.ini
+
+      - name: Run beartype (runtime type check)
+        working-directory: backend
         run: |
-          mypy --config-file backend/mypy.ini
+          # Esegui tutti i test per verificare i tipi a runtime
+          pytest --tb=short -q
