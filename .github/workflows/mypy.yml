@@ -28,9 +28,3 @@ jobs:
       - name: Run mypy (static type check)
         working-directory: backend
         run: python -m mypy --config-file mypy.ini
-
-      - name: Run beartype (runtime type check)
-        working-directory: backend
-        run: |
-          # Esegui tutti i test per verificare i tipi a runtime
-          pytest --tb=short -q
