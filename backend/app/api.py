@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware;
 from pydantic import AfterValidator
 from .database import *
 from .schemas import *
-from typing import Annotated, Sequence
+from typing import Annotated, Sequence, Any
 from sqlmodel import Session
 
 app = FastAPI() 
@@ -15,11 +15,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+SessionDep = Annotated[Session, Depends(get_session)]
+
+@app.get("/ai/{info}")
+def print_ai(info: str, session: SessionDep) -> Any: 
+    if info =="utenti":
+      return get_all_users(session) 
+    if info =="articoli":
+        return get_all_anagrafica_articolo(session)
+    return {"response": "Errore, non è possibile ottenere le info"}
+
+
 @app.get("/")
 def root() -> dict[str, str]:
     return {"hello": "world"}
 
-SessionDep = Annotated[Session, Depends(get_session)]
 
 @app.get("/users", response_model=list[UserOut])
 def users(session: SessionDep) -> Sequence[Utente]: 
