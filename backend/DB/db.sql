@@ -5323,6 +5323,25 @@ INSERT INTO anacli (
     (997499, 'CLIENTE 997499')
 ;
 
+CREATE TYPE RoleEnum AS ENUM('user', 'assistant');
+
+CREATE TABLE conversazioni(
+    id SERIAL PRIMARY KEY,
+    data_creazione TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Per eliminazione automatica dei messaggi quando si cancella una conversazione
+CREATE TABLE messaggi(
+    id SERIAL PRIMARY KEY,
+    conversazione_id INTEGER REFERENCES conversazioni(id) ON DELETE CASCADE,
+    ruolo RoleEnum NOT NULL,
+    testo TEXT NOT NULL,
+    data_invio TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_messaggi_conversazione_id ON messaggi(conversazione_id);
+CREATE INDEX idx_messaggi_data_invio ON messaggi(data_invio);
+
 CREATE TABLE utentiweb (
     username VARCHAR(255) PRIMARY KEY,
     descrizione VARCHAR(80),

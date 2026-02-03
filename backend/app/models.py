@@ -40,12 +40,12 @@ class RoleEnum(str, Enum):
     user = "user"
     assistant = "assistant"
 
-class Conversazione(SQLModel, table=True):
+class Conversazioni(SQLModel, table=True):
     __tablename__: ClassVar[str] = "conversazioni"
     id: int = Field(default=None, primary_key=True)
     data_creazione: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-class Messaggio(SQLModel, table=True):
+class Messaggi(SQLModel, table=True):
     __tablename__: ClassVar[str] = "messaggi"
     id: int = Field(default=None, primary_key=True)
     conversazione_id: int = Field(foreign_key="conversazioni.id")
