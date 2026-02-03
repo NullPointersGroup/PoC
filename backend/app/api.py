@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware;
 from .database import get_session, get_all_users
-from .models import Utente
+from .schemas import UserOut
 from typing import Annotated
 from sqlmodel import Session
 
@@ -21,5 +21,5 @@ def root() -> dict[str, str]:
 SessionDep = Annotated[Session, Depends(get_session)]
 
 @app.get("/users")
-def users(session: SessionDep): 
+def users(session: SessionDep) -> list[UserOut]: 
    return get_all_users(session) 
