@@ -11,13 +11,12 @@ def create_conversation(session: Session, conv_id: int | None = None) -> Convers
     session.refresh(conv)
     return conv
 
-def get_messages(session: Session, conv_id: int):
-    messaggi = session.exec(
+def get_messages(session: Session, conv_id: int)->Sequence[Messaggi]:
+    return session.exec(
         select(Messaggi)
         .where(Messaggi.conversazione_id == conv_id)
         .order_by(col(Messaggi.data_invio))
     ).all()
-    return [{"role": m.ruolo.value, "content": m.testo} for m in messaggi]
 
 def add_message(session: Session, conv_id: int, ruolo: RoleEnum, testo: str) -> Messaggi:
     msg = Messaggi(conversazione_id=conv_id, ruolo=ruolo, testo=testo)

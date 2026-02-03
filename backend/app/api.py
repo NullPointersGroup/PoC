@@ -18,14 +18,6 @@ app.add_middleware(
 )
 
 SessionDep = Annotated[Session, Depends(get_session)]
-
-class ChatRequest(BaseModel):
-    message: str
-    conv_id: int | None = None
-
-class ChatReply(BaseModel):
-    reply: str
-    conv_id: int
     
 def get_global_conversation(session: Session) -> int:
     conv = session.exec(select(Conversazioni).limit(1)).first()
@@ -42,9 +34,6 @@ def chat(req: ChatRequest, session: Session = Depends(get_session)) -> ChatReply
     add_message(session, conv_id, RoleEnum.assistant, reply)
 
     return ChatReply(reply=reply, conv_id=conv_id)
-
-class MessagePayload(BaseModel):
-    testo: str
 
 @app.post("/conversazioni/1/messaggi")
 def send_message(
@@ -108,12 +97,12 @@ def get_ordini(session: SessionDep) -> Sequence[Ordine]:
     return get_all_ordes(session)
 
 @app.post("/conversazioni")
-def new_conversation(session: Session = Depends(get_session)) -> dict[str, int]:
+def new_conversation(session: SessionDep) -> dict[str, int]:
     conv = create_conversation(session)
     return {"id": conv.id}
 
-@app.get("/conversazioni/{conv_id}/messaggi")
-def read_messages(conv_id: int, session: Session = Depends(get_session)) -> Any:
+@app.get("/conversazioni/{conv_id}/messaggi", response_model=list[MessaggioOut])
+def read_messages(conv_id: int, session: SessionDep) -> Any:
     return get_messages(session, conv_id)
 
 """

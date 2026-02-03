@@ -2,8 +2,8 @@
 import { useEffect, useState, useRef } from "react";
 
 interface Message {
-  role: "user" | "assistant";
-  content: string;
+  ruolo: "user" | "assistant";
+  testo: string;
 }
 
 export default function Chat() {
@@ -30,14 +30,14 @@ export default function Chat() {
         console.error("Errore nel caricamento messaggi:", error);
       }
     };
-    
+
     loadMessages();
   }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
-    
-    const userMsg = { role: "user" as const, content: input };
+
+    const userMsg = { ruolo: "user" as const, testo: input };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
 
@@ -48,24 +48,23 @@ export default function Chat() {
     });
 
     const data = await res.json();
-    setMessages(prev => [...prev, { role: "assistant", content: data.reply }]);
+    setMessages(prev => [...prev, { ruolo: "assistant", testo: data.reply }]);
   };
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto p-4 flex flex-col">
         {messages.map((m, i) => (
-          <div key={i} className={`inline-block max-w-xs p-2 mb-2 px-4 ${
-            m.role === "user"
-              ? "bg-blue-400 text-white rounded-2xl self-end"
-              : "bg-gray-300 text-black rounded-2xl self-start"
-          }`}>
-            {m.content}
-          </div>          
+          <div key={i} className={`inline-block max-w-xs p-2 mb-2 px-4 ${m.ruolo === "user"
+            ? "bg-blue-400 text-white rounded-2xl self-end"
+            : "bg-gray-300 text-black rounded-2xl self-start"
+            }`}>
+            {m.testo}
+          </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
-      
+
       <div className="p-4 border-t flex">
         <input
           className="flex-1 border rounded px-2 py-1"
@@ -75,8 +74,8 @@ export default function Chat() {
           onKeyDown={e => e.key === "Enter" && handleSend()}
           placeholder="Scrivi un messaggio..."
         />
-        <button 
-          onClick={handleSend} 
+        <button
+          onClick={handleSend}
           className="ml-2 px-4 py-1 border rounded bg-slate-300"
         >
           Invia
