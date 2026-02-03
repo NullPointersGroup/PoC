@@ -1,20 +1,23 @@
 from sqlmodel import Session, select, col
 from .models import Conversazioni, Messaggi, RoleEnum
-from typing import Any
+from typing import Sequence
 
-def create_conversation(session: Session) -> Conversazioni:
+def create_conversation(session: Session, conv_id: int | None = None) -> Conversazioni:
     conv = Conversazioni()
+    if conv_id is not None:
+        conv.id = conv_id
     session.add(conv)
     session.commit()
     session.refresh(conv)
     return conv
 
-def get_messages(session: Session, conv_id: int) -> Any:
-    return session.exec(
+def get_messages(session: Session, conv_id: int):
+    messaggi = session.exec(
         select(Messaggi)
         .where(Messaggi.conversazione_id == conv_id)
         .order_by(col(Messaggi.data_invio))
     ).all()
+    return [{"role": m.ruolo.value, "content": m.testo} for m in messaggi]
 
 def add_message(session: Session, conv_id: int, ruolo: RoleEnum, testo: str) -> Messaggi:
     msg = Messaggi(conversazione_id=conv_id, ruolo=ruolo, testo=testo)

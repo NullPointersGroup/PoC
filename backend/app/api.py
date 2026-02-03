@@ -4,7 +4,7 @@ from pydantic import AfterValidator
 from .database import *
 from .schemas import *
 from typing import Annotated, Sequence, Any, Dict
-from sqlmodel import Session
+from sqlmodel import Session, select, delete, col
 from .mex import create_conversation, get_messages, add_message
 from pydantic import BaseModel
 
@@ -21,12 +21,57 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 class ChatRequest(BaseModel):
     message: str
+    conv_id: int | None = None
 
-@app.post("/chat")
-def chat(req: ChatRequest) -> Dict[str, str]:
-    # Risposta statica o basata sul messaggio dell’utente
+class ChatReply(BaseModel):
+    reply: str
+    conv_id: int
+    
+def get_global_conversation(session: Session) -> int:
+    conv = session.exec(select(Conversazioni).limit(1)).first()
+    if conv is None:
+        conv = create_conversation(session)
+    return conv.id
+
+@app.post("/chat", response_model=ChatReply)
+def chat(req: ChatRequest, session: Session = Depends(get_session)) -> ChatReply:
+    conv_id = req.conv_id or get_global_conversation(session)
+
+    add_message(session, conv_id, RoleEnum.user, req.message)
     reply = f"Hai scritto: {req.message}"
+    add_message(session, conv_id, RoleEnum.assistant, reply)
+
+    return ChatReply(reply=reply, conv_id=conv_id)
+
+class MessagePayload(BaseModel):
+    testo: str
+
+@app.post("/conversazioni/1/messaggi")
+def send_message(
+    payload: MessagePayload, 
+    session: Session = Depends(get_session)
+) -> Dict[str, str]:
+    testo = payload.testo
+    if not testo:
+        return {"reply": "Messaggio vuoto"}
+
+    # Salva messaggio utente
+    add_message(session, conv_id=1, ruolo=RoleEnum.user, testo=testo)
+
+    # Genera risposta semplice dell'assistente
+    reply = f"Hai scritto: {testo}"
+    add_message(session, conv_id=1, ruolo=RoleEnum.assistant, testo=reply)
+
     return {"reply": reply}
+
+from sqlmodel import delete
+
+@app.delete("/conversazioni/{conv_id}")
+def delete_conversation(conv_id: int, session: Session = Depends(get_session)) -> dict[str, str]:
+    session.exec(delete(Messaggi).where(Messaggi.conversazione_id == conv_id)) #type: ignore
+    session.exec(delete(Conversazioni).where(Conversazioni.id == conv_id)) #type: ignore
+    session.commit()
+    return {"status": "ok", "message": "Conversazione eliminata"}
 
 @app.get("/ai/{info}")
 def print_ai(info: str, session: SessionDep) -> Any: 
