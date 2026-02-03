@@ -1,4 +1,5 @@
 # PoC
+[![Python Type Checks](https://github.com/NullPointersGroup/PoC/actions/workflows/mypy.yml/badge.svg)](https://github.com/NullPointersGroup/PoC/actions/workflows/mypy.yml)
 Repository del codice sorgente per il Proof Of Concept (PoC)
 
 ---
