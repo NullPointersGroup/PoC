@@ -41,9 +41,10 @@ def valida_tipo_anagrafica(tipo: str) -> str:
         raise ValueError("Tipo di anagrafica non supportato")
     return tipo
 
-@app.get("/anagrafica/{tipo}", response_model=list[AnagraficaArticoloOut])
+@app.get("/anagrafica/{tipo}", response_model=list[AnagraficaCliente] | list[AnagraficaArticoloOut])
 def get_anagrafica(tipo: Annotated[str, Path(min_length=7, max_length=8), AfterValidator(valida_tipo_anagrafica)], session: SessionDep)-> Sequence[AnagraficaCliente] | Sequence[AnagraficaArticolo]:
     if tipo.lower() == "cliente":
+        print("SONO QUIII")
         return get_all_anagrafica_cliente(session)
     return get_all_anagrafica_articolo(session)
 
