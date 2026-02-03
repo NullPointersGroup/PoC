@@ -6,7 +6,7 @@ from .schemas import *
 from typing import Annotated, Sequence
 from sqlmodel import Session
 
-app = FastAPI()
+app = FastAPI() 
 
 app.add_middleware(
     CORSMiddleware,
