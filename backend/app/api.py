@@ -5,6 +5,8 @@ from .database import *
 from .schemas import *
 from typing import Annotated, Sequence, Any
 from sqlmodel import Session
+from .mex import create_conversation, get_messages, add_message
+from .AI import result
 
 app = FastAPI() 
 
@@ -24,7 +26,10 @@ def print_ai(info: str, session: SessionDep) -> Any:
     if info =="articoli":
         return get_all_anagrafica_articolo(session)
     return {"response": "Errore, non è possibile ottenere le info"}
-
+""
+@app.post("/chat")
+def print_response():
+    return {"hello": "world"}
 
 @app.get("/")
 def root() -> dict[str, str]:
@@ -50,3 +55,21 @@ def get_anagrafica(tipo: Annotated[str, Path(min_length=7, max_length=8), AfterV
 @app.get("/ordini")
 def get_ordini(session: SessionDep) -> Sequence[Ordine]:
     return get_all_ordes(session)
+
+@app.post("/conversazioni")
+def new_conversation(session: Session = Depends(get_session)):
+    conv = create_conversation(session)
+    return {"id": conv.id}
+
+@app.get("/conversazioni/{conv_id}/messaggi")
+def read_messages(conv_id: int, session: Session = Depends(get_session)):
+    return get_messages(session, conv_id)
+
+@app.post("/conversazioni/{conv_id}/messaggi")
+def send_message(conv_id: int, testo: str, session: Session = Depends(get_session)):
+    add_message(session, conv_id, RoleEnum.user, testo)
+    
+    risposta_ai = result["messages"][-1].content
+    
+    add_message(session, conv_id, RoleEnum.assistant, risposta_ai)
+    return {"reply": risposta_ai}
