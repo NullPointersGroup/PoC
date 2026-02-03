@@ -3,10 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware;
 from pydantic import AfterValidator
 from .database import *
 from .schemas import *
-from typing import Annotated, Sequence, Any
+from typing import Annotated, Sequence, Any, Dict
 from sqlmodel import Session
 from .mex import create_conversation, get_messages, add_message
-from .AI import result
+from pydantic import BaseModel
 
 app = FastAPI() 
 
@@ -19,6 +19,15 @@ app.add_middleware(
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
+class ChatRequest(BaseModel):
+    message: str
+
+@app.post("/chat")
+def chat(req: ChatRequest) -> Dict[str, str]:
+    # Risposta statica o basata sul messaggio dell’utente
+    reply = f"Hai scritto: {req.message}"
+    return {"reply": reply}
+
 @app.get("/ai/{info}")
 def print_ai(info: str, session: SessionDep) -> Any: 
     if info =="utenti":
@@ -27,9 +36,6 @@ def print_ai(info: str, session: SessionDep) -> Any:
         return get_all_anagrafica_articolo(session)
     return {"response": "Errore, non è possibile ottenere le info"}
 ""
-@app.post("/chat")
-def print_response():
-    return {"hello": "world"}
 
 @app.get("/")
 def root() -> dict[str, str]:
@@ -58,19 +64,21 @@ def get_ordini(session: SessionDep) -> Sequence[Ordine]:
     return get_all_ordes(session)
 
 @app.post("/conversazioni")
-def new_conversation(session: Session = Depends(get_session)):
+def new_conversation(session: Session = Depends(get_session)) -> dict[str, int]:
     conv = create_conversation(session)
     return {"id": conv.id}
 
 @app.get("/conversazioni/{conv_id}/messaggi")
-def read_messages(conv_id: int, session: Session = Depends(get_session)):
+def read_messages(conv_id: int, session: Session = Depends(get_session)) -> Any:
     return get_messages(session, conv_id)
 
+"""
 @app.post("/conversazioni/{conv_id}/messaggi")
-def send_message(conv_id: int, testo: str, session: Session = Depends(get_session)):
+def send_message(conv_id: int, testo: str, session: Session = Depends(get_session)) -> dict[str, str]:
     add_message(session, conv_id, RoleEnum.user, testo)
     
     risposta_ai = result["messages"][-1].content
     
     add_message(session, conv_id, RoleEnum.assistant, risposta_ai)
     return {"reply": risposta_ai}
+"""

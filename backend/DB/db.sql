@@ -5330,7 +5330,6 @@ CREATE TABLE conversazioni(
     data_creazione TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Per eliminazione automatica dei messaggi quando si cancella una conversazione
 CREATE TABLE messaggi(
     id SERIAL PRIMARY KEY,
     conversazione_id INTEGER REFERENCES conversazioni(id) ON DELETE CASCADE,

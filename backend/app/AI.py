@@ -40,10 +40,3 @@ agent = create_agent( #type: ignore
     tools=[query_db],
     system_prompt=system_prompt
 )
-
-# Usa l'agente
-result: (dict[str, Any] | Any) = agent.invoke({
-    "messages": [{"role": "user", "content": "Dammi le info sugli 'articoli'"}]
-})
-
-print(result["messages"][-1].content)
