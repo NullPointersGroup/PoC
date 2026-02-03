@@ -69,9 +69,8 @@ from sqlmodel import delete
 @app.delete("/conversazioni/{conv_id}")
 def delete_conversation(conv_id: int, session: Session = Depends(get_session)) -> dict[str, str]:
     session.exec(delete(Messaggi).where(Messaggi.conversazione_id == conv_id)) #type: ignore
-    session.exec(delete(Conversazioni).where(Conversazioni.id == conv_id)) #type: ignore
     session.commit()
-    return {"status": "ok", "message": "Conversazione eliminata"}
+    return {"status": "ok", "message": f"Messaggi della conversazione {conv_id} eliminati"}
 
 @app.get("/ai/{info}")
 def print_ai(info: str, session: SessionDep) -> Any: 

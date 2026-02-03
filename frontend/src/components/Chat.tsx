@@ -1,3 +1,4 @@
+// Chat.tsx
 import { useEffect, useState, useRef } from "react";
 
 interface Message {
@@ -16,8 +17,26 @@ export default function Chat() {
 
   useEffect(scrollToBottom, [messages]);
 
+  // CARICA I MESSAGGI ESISTENTI
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/conversazioni/1/messaggi");
+        if (res.ok) {
+          const data = await res.json();
+          setMessages(data);
+        }
+      } catch (error) {
+        console.error("Errore nel caricamento messaggi:", error);
+      }
+    };
+    
+    loadMessages();
+  }, []);
+
   const handleSend = async () => {
     if (!input.trim()) return;
+    
     const userMsg = { role: "user" as const, content: input };
     setMessages(prev => [...prev, userMsg]);
     setInput("");
@@ -46,6 +65,7 @@ export default function Chat() {
         ))}
         <div ref={messagesEndRef} />
       </div>
+      
       <div className="p-4 border-t flex">
         <input
           className="flex-1 border rounded px-2 py-1"
@@ -55,7 +75,10 @@ export default function Chat() {
           onKeyDown={e => e.key === "Enter" && handleSend()}
           placeholder="Scrivi un messaggio..."
         />
-        <button onClick={handleSend} className="ml-2 px-4 py-1 border rounded bg-slate-300">
+        <button 
+          onClick={handleSend} 
+          className="ml-2 px-4 py-1 border rounded bg-slate-300"
+        >
           Invia
         </button>
       </div>
