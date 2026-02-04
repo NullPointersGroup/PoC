@@ -169,7 +169,7 @@ def get_user_cart(user: str, session: SessionDep) -> Any:
 
 
 @app.delete("/{user}/cart/{cod_art}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_cart_article(user: str, cod_art: str, session: SessionDep):
+def delete_cart_article(user: str, cod_art: str, session: SessionDep) -> Any:
     removed = remove_from_cart(session, user, cod_art)
 
     if not removed:
@@ -177,18 +177,18 @@ def delete_cart_article(user: str, cod_art: str, session: SessionDep):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
         )
-        return None
+    return None
 
 
 @app.delete("/{user}/cart", status_code=status.HTTP_204_NO_CONTENT)
-def clear_cart(user: str, session: SessionDep):
+def clear_cart(user: str, session: SessionDep) -> Any:
     clear_user_cart(session, user)
 
 
 @app.put("/{user}/cart/{cod_art}")
 def update_quantity(
     user: str, cod_art: str, update: UpdateQuantityRequest, session: SessionDep
-):
+) -> Any:
     if update.quantita <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
