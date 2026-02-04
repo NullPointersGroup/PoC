@@ -1,15 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
-CREATE TABLE anaart (
-    cod_art VARCHAR(13) PRIMARY KEY,
-    des_art VARCHAR(255),
-    des_um VARCHAR(40),
-    tipo_um VARCHAR(1),
-    des_tipo_um VARCHAR(20),
-    peso_netto_conf REAL,
-    conf_collo REAL,
-    pezzi_conf INTEGER
-);
-
 INSERT INTO anaart (
     cod_art,
     des_art,
@@ -2075,11 +2063,6 @@ INSERT INTO anaart (
     ('WH243', 'WHISKY THE BUSKER S.MALT 44,3% 070 VAP', 'BOTTIGLIA', 'P', 'PEZZI', 0.7, 1, 1),
     ('WH244', 'WHISKY BULLEIT BOURBON  10Y   070 VAP', 'BOTTIGLIA', 'P', 'PEZZI', 0.7, 1, 1)
 ;
-
-CREATE TABLE anacli (
-    cod_cli INTEGER PRIMARY KEY,
-    rag_soc VARCHAR(255)
-);
 
 INSERT INTO anacli (
     cod_cli,
@@ -5324,34 +5307,6 @@ INSERT INTO anacli (
     (997499, 'CLIENTE 997499')
 ;
 
-CREATE TYPE RoleEnum AS ENUM('user', 'assistant');
-
-CREATE TABLE conversazioni(
-    id SERIAL PRIMARY KEY,
-    data_creazione TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE messaggi(
-    id SERIAL PRIMARY KEY,
-    conversazione_id INTEGER REFERENCES conversazioni(id) ON DELETE CASCADE,
-    ruolo RoleEnum NOT NULL,
-    testo TEXT NOT NULL,
-    data_invio TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_messaggi_conversazione_id ON messaggi(conversazione_id);
-CREATE INDEX idx_messaggi_data_invio ON messaggi(data_invio);
-
-CREATE TABLE utentiweb (
-    username VARCHAR(255) PRIMARY KEY,
-    descrizione VARCHAR(80),
-    password VARCHAR(60),
-    cod_utente INTEGER,
-    CONSTRAINT fk_utentiweb_anacli
-        FOREIGN KEY (cod_utente)
-        REFERENCES anacli(cod_cli)
-);
-
 INSERT INTO utentiweb (
     username,
     descrizione,
@@ -5362,19 +5317,6 @@ INSERT INTO utentiweb (
     ('santinon@ergon.it', 'CLIENTE', '$2b$12$nWlQELohrgoZZsBim8MDyeOjk63SuCoXbiCfxqj5./XTo/WwNI2M6', 11),
     ('bonavigo@ergon.it', 'CLIENTE', '$2b$12$4jNp5l9a4QRL7TDy/e1v/.QsxT98m9tA8nxUZh9IT23SO/Yggr7cu', 12)
 ;
-
-CREATE TABLE ordclidet (
-    id SERIAL PRIMARY KEY,
-    cod_cli INTEGER,
-    cod_art VARCHAR(13),
-    data_ord DATE,
-    qta_ordinata INTEGER,
-    rif TEXT,
-    CONSTRAINT fk_ordclidet_anacli
-        FOREIGN KEY (cod_cli) REFERENCES anacli(cod_cli),
-    CONSTRAINT fk_ordclidet_anaart
-        FOREIGN KEY (cod_art) REFERENCES anaart(cod_art)
-);
 
 INSERT INTO ordclidet (
     cod_cli,
@@ -5526,16 +5468,7 @@ INSERT INTO ordclidet (
     (28801, 'B0192', '2025-08-17', 18, NULL),
     (981387, 'B0192', '2025-08-17', 25, NULL);
 
-CREATE TABLE carrello(utente varchar(255), 
-		      prodotto varchar(13),
-		      quantita INTEGER,
-    CONSTRAINT fk_cart_utentiweb FOREIGN KEY (utente) REFERENCES utentiweb(username),
-    CONSTRAINT fk_cart_anaart FOREIGN KEY (prodotto) REFERENCES anaart(cod_art)
-);
-
-INSERT INTO carrello(utente, prodotto, quantita) VALUES
+    INSERT INTO carrello(utente, prodotto, quantita) VALUES
   ('carlesso@ergon.it', 'AC011', 5), 
   ('santinon@ergon.it', 'AC011', 5),
   ('santinon@ergon.it', 'AC060', 7);
-
-
