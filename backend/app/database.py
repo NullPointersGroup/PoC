@@ -9,18 +9,40 @@ if not DATABASE_URL:
 
 engine = create_engine(DATABASE_URL, echo=True)
 
+
 def get_session() -> Generator[Session, Any, None]:
     with Session(engine) as session:
         yield session
 
+
 def get_all_users(session: Session) -> Sequence[Utente]:
     return session.exec(select(Utente)).all()
+
 
 def get_all_anagrafica_cliente(session: Session) -> Sequence[AnagraficaCliente]:
     return session.exec(select(AnagraficaCliente).limit(3)).all()
 
+
 def get_all_anagrafica_articolo(session: Session) -> Sequence[AnagraficaArticolo]:
     return session.exec(select(AnagraficaArticolo).limit(3)).all()
 
+
 def get_all_ordes(session: Session) -> Sequence[Ordine]:
     return session.exec(select(Ordine).limit(3)).all()
+
+
+def get_cart(session: Session, user: str) -> Sequence[CarrelloDTO]:
+    statement = (
+        select(Carrello.prodotto, Carrello.quantita, AnagraficaArticolo.des_art)
+        .select_from(Carrello)
+        .join(AnagraficaArticolo)
+        .where(Carrello.utente == user)
+        .where(Carrello.prodotto == AnagraficaArticolo.cod_art)
+    )
+    results = session.exec(statement).all()
+
+    return [
+        CarrelloDTO(prodotto=prodotto, quantita=quantita, des_art=des_art)
+        for prodotto, quantita, des_art in results
+    ]
+

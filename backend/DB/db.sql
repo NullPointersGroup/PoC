@@ -5525,3 +5525,17 @@ INSERT INTO ordclidet (
     (18330, 'B0192', '2025-08-17', 25, NULL),
     (28801, 'B0192', '2025-08-17', 18, NULL),
     (981387, 'B0192', '2025-08-17', 25, NULL);
+
+CREATE TABLE carrello(utente varchar(255), 
+		      prodotto varchar(13),
+		      quantita INTEGER,
+    CONSTRAINT fk_cart_utentiweb FOREIGN KEY (utente) REFERENCES utentiweb(username),
+    CONSTRAINT fk_cart_anaart FOREIGN KEY (prodotto) REFERENCES anaart(cod_art)
+);
+
+INSERT INTO carrello(utente, prodotto, quantita) VALUES
+  ('carlesso@ergon.it', 'AC011', 5), 
+  ('santinon@ergon.it', 'AC011', 5),
+  ('santinon@ergon.it', 'AC060', 7);
+
+
