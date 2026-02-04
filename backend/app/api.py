@@ -120,6 +120,6 @@ def send_message(conv_id: int, testo: str, session: Session = Depends(get_sessio
 from .AI import invoke_agent
 
 @app.get("/ai")
-def query_ai(message: str):
+def query_ai(message: str) -> dict[str, Any] | Any:
     risposta =  invoke_agent(message)
     return risposta["messages"][-1]

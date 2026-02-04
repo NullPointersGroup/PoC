@@ -11,7 +11,7 @@ from langchain.messages import HumanMessage
 load_dotenv()
 
 OPEN_API_KEY = os.getenv("OPENAI_API_KEY")
-DB = SQLDatabase.from_uri(os.getenv("DATABASE_URL"))
+DB = SQLDatabase.from_uri(os.getenv("DATABASE_URL")) #type: ignore
 
 model = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, api_key=OPEN_API_KEY) #type: ignore
 
@@ -33,14 +33,14 @@ IMPORTANT RULES:
 Respond in Italian.
 """
 
-agent = create_agent(
+agent = create_agent( #type: ignore
     model=model,
     tools=tools,
     system_prompt=system_prompt,
 )
 
 
-def invoke_agent(question: str):
+def invoke_agent(question: str): #type: ignore
     return agent.invoke({
         "messages": [HumanMessage(content=question)],
     }, {
