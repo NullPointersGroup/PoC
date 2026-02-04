@@ -1,42 +1,48 @@
-import requests
 import os
 from dotenv import load_dotenv
-from langchain.tools import tool
+
+
+from langchain_community.utilities import SQLDatabase
+from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
-from typing import Any
-
-BASE_URL: str = "http://localhost:8000/ai"
+from langchain.messages import HumanMessage
 
 load_dotenv()
 
-@tool
-def query_db(info: str) -> str:
-    """
-    Interroga il database per ottenere informazioni.
-    
-    Categorie disponibili:
-    - 'utenti': ritorna tutti gli utenti del sistema
-    - 'articoli': ritorna tutti gli articoli/prodotti disponibili
-    
-    Args:
-        categoria: deve essere esattamente 'utenti' o 'articoli'
-    
-    Esempio: query_db('utenti') oppure query_db('articoli')
-    """
-    response = requests.get(f"{BASE_URL}/{info}", timeout=10.0)
-    response.raise_for_status()
-    return str(response.text)
+OPEN_API_KEY = os.getenv("OPENAI_API_KEY")
+DB = SQLDatabase.from_uri(os.getenv("DATABASE_URL"))
 
-system_prompt: str = """\
-Possiedi l'accesso al database e in caso ti serva puoi effettuare query con la funzione query_db
+model = ChatOpenAI(model="gpt-4o-mini", temperature=0.1, api_key=OPEN_API_KEY) #type: ignore
+
+tools = SQLDatabaseToolkit(db=DB, llm=model).get_tools()
+
+
+system_prompt = """
+You are a SQL expert. Use this exact database schema:
+
+
+IMPORTANT RULES:
+- Write SQL queries directly using the schema above
+- DO NOT list tables with sql_db_list_tables
+- DO NOT check schema with sql_db_schema
+- DO NOT use sql_db_query_checker
+- Execute queries immediately with sql_db_query
+- Limit results to 5 unless specified
+
+Respond in Italian.
 """
 
-llm = ChatOpenAI(model="gpt-4", temperature=0, api_key=os.getenv("OPENAI_API_KEY")) #type: ignore
-
-# Crea l'agente con create_agent
-agent = create_agent( #type: ignore
-    llm,
-    tools=[query_db],
-    system_prompt=system_prompt
+agent = create_agent(
+    model=model,
+    tools=tools,
+    system_prompt=system_prompt,
 )
+
+
+def invoke_agent(question: str):
+    return agent.invoke({
+        "messages": [HumanMessage(content=question)],
+    }, {
+        "configurable": {"thread_id": "1"}
+    })

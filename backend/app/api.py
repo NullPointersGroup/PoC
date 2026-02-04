@@ -61,13 +61,13 @@ def delete_conversation(conv_id: int, session: Session = Depends(get_session)) -
     session.commit()
     return {"status": "ok", "message": f"Messaggi della conversazione {conv_id} eliminati"}
 
-@app.get("/ai/{info}")
-def print_ai(info: str, session: SessionDep) -> Any: 
-    if info =="utenti":
-      return get_all_users(session) 
-    if info =="articoli":
-        return get_all_anagrafica_articolo(session)
-    return {"response": "Errore, non è possibile ottenere le info"}
+# @app.get("/ai/{info}")
+# def print_ai(info: str, session: SessionDep) -> Any: 
+#     if info =="utenti":
+#       return get_all_users(session) 
+#     if info =="articoli":
+#         return get_all_anagrafica_articolo(session)
+#     return {"response": "Errore, non è possibile ottenere le info"}
 ""
 
 @app.get("/")
@@ -115,3 +115,11 @@ def send_message(conv_id: int, testo: str, session: Session = Depends(get_sessio
     add_message(session, conv_id, RoleEnum.assistant, risposta_ai)
     return {"reply": risposta_ai}
 """
+
+
+from .AI import invoke_agent
+
+@app.get("/ai")
+def query_ai(message: str):
+    risposta =  invoke_agent(message)
+    return risposta["messages"][-1]
