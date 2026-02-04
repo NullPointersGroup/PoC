@@ -1,4 +1,3 @@
-// Chat.tsx
 import { useEffect, useState, useRef } from "react";
 
 interface Message {
@@ -72,7 +71,7 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden pt-16">
-      {/* AREA MESSAGGI CON PADDING TOP PER L'HEADER */}
+      {/* AREA MESSAGGI*/}
       <main className="flex-1 flex relative overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((m, i) => (

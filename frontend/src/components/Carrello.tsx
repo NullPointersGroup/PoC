@@ -1,4 +1,3 @@
-// components/Carrello.tsx
 interface CarrelloProps {
   isOpen: boolean;
   onClose: () => void;

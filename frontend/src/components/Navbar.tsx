@@ -1,4 +1,3 @@
-// components/Navbar.tsx
 import { useState } from "react";
 import DeleteModal from "./DeleteModal";
 import Carrello from "./Carrello";
@@ -53,7 +52,7 @@ export default function Navbar() {
         )}
       </div>
 
-      {/* HEADER BIANCO SUPERIORE - inizia dopo la sidebar */}
+      {/* HEADER BIANCO con stato*/}
       <header className={`absolute top-0 right-0 bg-white border-b px-4 py-3 flex items-center justify-between shadow-sm z-10 transition-all duration-300 ${
         open ? "left-64" : "left-16"
       }`}>
@@ -65,7 +64,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* ICONA CARRELLO */}
+        {/* ICONA CARRELLO*/}
         <button
           onClick={() => setIsCarrelloOpen(true)}
           className="p-2 hover:bg-gray-100 rounded-full transition-colors"
