@@ -71,20 +71,9 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
-      {/* HEADER */}
-      <header className="bg-white border-b px-4 py-3 flex items-center justify-between shadow-sm z-10">
-        <div>
-          <h1 className="text-xl font-bold text-blue-600">SmartOrder AI</h1>
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-            <span className="text-[10px] text-gray-500 uppercase font-medium tracking-tight">Online</span>
-          </div>
-        </div>
-      </header>
-
+    <div className="flex flex-col h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden pt-16">
+      {/* AREA MESSAGGI CON PADDING TOP PER L'HEADER */}
       <main className="flex-1 flex relative overflow-hidden">
-        {/* AREA MESSAGGI */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((m, i) => (
             <div key={i} className={`flex flex-col ${m.ruolo === "user" ? "items-end" : "items-start"}`}>
