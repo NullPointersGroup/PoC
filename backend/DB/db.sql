@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 CREATE TABLE anaart (
     cod_art VARCHAR(13) PRIMARY KEY,
     des_art VARCHAR(255),
