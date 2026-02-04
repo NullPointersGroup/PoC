@@ -67,3 +67,18 @@ def clear_user_cart(session: Session, user: str) -> None:
     for item in items:
         session.delete(item)
     session.commit()
+
+
+def update_cart_quantity(
+    session: Session, user: str, cod_art: str, quantita: int
+) -> bool:
+    statement = select(Carrello).where(
+        Carrello.utente == user, Carrello.prodotto == cod_art
+    )
+    item = session.exec(statement).first()
+
+    if item:
+        item.quantita = quantita
+        session.commit()
+        return True
+    return False

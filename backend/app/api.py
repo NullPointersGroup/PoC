@@ -9,6 +9,11 @@ from sqlmodel import Session, select, delete, col
 from .mex import create_conversation, get_messages, add_message
 from pydantic import BaseModel
 
+
+class UpdateQuantityRequest(BaseModel):
+    quantita: int
+
+
 app = FastAPI()
 
 app.add_middleware(
@@ -175,3 +180,20 @@ def delete_cart_article(user: str, cod_art: str, session: SessionDep):
 @app.delete("/{user}/cart", status_code=status.HTTP_204_NO_CONTENT)
 def clear_cart(user: str, session: SessionDep):
     clear_user_cart(session, user)
+
+
+@app.put("/{user}/cart/{cod_art}")
+def update_quantity(
+    user: str, cod_art: str, update: UpdateQuantityRequest, session: SessionDep
+):
+    if update.quantita <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La quantità deve essere maggiore di zero",
+        )
+    updated = update_cart_quantity(session, user, cod_art, update.quantita)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
+        )
