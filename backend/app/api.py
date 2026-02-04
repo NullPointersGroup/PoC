@@ -7,6 +7,7 @@ from typing import Annotated, Sequence, Any, Dict
 from sqlmodel import Session, select, delete, col
 from .mex import create_conversation, get_messages, add_message
 from pydantic import BaseModel
+from .cart import router as cart_router
 
 app = FastAPI()
 
@@ -16,6 +17,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(cart_router)
 
 SessionDep = Annotated[Session, Depends(get_session)]
 
