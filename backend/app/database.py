@@ -46,3 +46,24 @@ def get_cart(session: Session, user: str) -> Sequence[CarrelloDTO]:
         for prodotto, quantita, des_art in results
     ]
 
+
+def remove_from_cart(session: Session, user: str, cod_art: str) -> bool:
+    statement = select(Carrello).where(
+        Carrello.utente == user, Carrello.prodotto == cod_art
+    )
+    carrello_item = session.exec(statement).first()
+
+    if carrello_item:
+        session.delete(carrello_item)
+        session.commit()
+        return True
+    return False
+
+
+def clear_user_cart(session: Session, user: str) -> None:
+    statement = select(Carrello).where(Carrello.utente == user)
+    items = session.exec(statement).all()
+
+    for item in items:
+        session.delete(item)
+    session.commit()

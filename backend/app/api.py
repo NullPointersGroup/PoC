@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Depends, Path
+from fastapi import FastAPI, Depends, HTTPException, Path, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import AfterValidator
+from starlette.status import HTTP_204_NO_CONTENT
 from .database import *
 from .schemas import *
 from typing import Annotated, Sequence, Any, Dict
@@ -157,3 +158,20 @@ def get_user_cart(user: str, session: SessionDep) -> Any:
     if not carrello:
         return []
     return carrello
+
+
+@app.delete("/{user}/cart/{cod_art}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cart_article(user: str, cod_art: str, session: SessionDep):
+    removed = remove_from_cart(session, user, cod_art)
+
+    if not removed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
+        )
+        return None
+
+
+@app.delete("/{user}/cart", status_code=status.HTTP_204_NO_CONTENT)
+def clear_cart(user: str, session: SessionDep):
+    clear_user_cart(session, user)
