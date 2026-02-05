@@ -3,6 +3,7 @@ from typing import Any, Dict
 from .api import SessionDep
 from .database import *
 from .schemas import UpdateQuantityRequest, CartAddRequest
+from .AI import invoke_cart_agent
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
@@ -20,64 +21,79 @@ def _build_cart_response(items_by_id: Dict[str, Dict[str, Any]]) -> Dict[str, An
         "total_price": total_price,
     }
 
-
-@router.post("/add")
-def add_to_cart(payload: CartAddRequest) -> Dict[str, Any]:
-    cart_items = _CARTS.setdefault(payload.conversation_id, {})
-
-    if payload.product_id in cart_items:
-        cart_items[payload.product_id]["qty"] += payload.qty
-    else:
-        cart_items[payload.product_id] = {
-            "product_id": payload.product_id,
-            "name": payload.name,
-            "qty": payload.qty,
-            "price": payload.price,
-        }
-
-    cart_summary = _build_cart_response(cart_items)
-    return {
-        "ok": True,
-        "message": f"Aggiunto: {payload.name} x{payload.qty}",
-        "cart": cart_summary,
-    }
+@router.get("/{user}")
+def query_cart_agent(user: str, message: str):
+    footer_prompt = f"L'utente che ha effettuato la richiesta è: {user}, se questa informazione ti serve per effettuare la query utilizzala. Non utilizzare questa nozione nella risposta finale e non ringraziare di questa informazione, è una cosa che sai soltanto tu"
+    return invoke_cart_agent(footer_prompt + message )["messages"][-1].content
 
 
-@router.get("/{user}/cart")
-def get_user_cart(user: str, session: SessionDep) -> Any:
-    carrello = get_cart(session, user)
-    if not carrello:
-        return []
-    return carrello
+# @router.post("/add")
+# def add_to_cart(payload: CartAddRequest) -> Dict[str, Any]:
+#     cart_items = _CARTS.setdefault(payload.conversation_id, {})
 
-@router.delete("/{user}/cart/{cod_art}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_cart_article(user: str, cod_art: str, session: SessionDep) -> None:
-    removed = remove_from_cart(session, user, cod_art)
+#     if payload.product_id in cart_items:
+#         cart_items[payload.product_id]["qty"] += payload.qty
+#     else:
+#         cart_items[payload.product_id] = {
+#             "product_id": payload.product_id,
+#             "name": payload.name,
+#             "qty": payload.qty,
+#             "price": payload.price,
+#         }
 
-    if not removed:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
-        )
+#     cart_summary = _build_cart_response(cart_items)
+#     return {
+#         "ok": True,
+#         "message": f"Aggiunto: {payload.name} x{payload.qty}",
+#         "cart": cart_summary,
+#     }
 
 
-@router.delete("/{user}/cart", status_code=status.HTTP_204_NO_CONTENT)
-def clear_cart(user: str, session: SessionDep) -> None:
-    clear_user_cart(session, user)
+# @router.get("/{user}/cart")
+# def get_user_cart(user: str, session: SessionDep) -> Any:
+#     carrello = get_cart(session, user)
+#     if not carrello:
+#         return []
+#     return carrello
+
+# @router.delete("/{user}/cart/{cod_art}", status_code=status.HTTP_204_NO_CONTENT)
+# def delete_cart_article(user: str, cod_art: str, session: SessionDep) -> None:
+#     removed = remove_from_cart(session, user, cod_art)
+
+#     if not removed:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
+#         )
 
 
-@router.put("/{user}/cart/{cod_art}")
-def update_quantity(
-    user: str, cod_art: str, update: UpdateQuantityRequest, session: SessionDep
-) -> Any:
-    if update.quantita <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La quantità deve essere maggiore di zero",
-        )
-    updated = update_cart_quantity(session, user, cod_art, update.quantita)
-    if not updated:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
-        )
+# @router.delete("/{user}/cart", status_code=status.HTTP_204_NO_CONTENT)
+# def clear_cart(user: str, session: SessionDep) -> None:
+#     clear_user_cart(session, user)
+
+# @router.delete("/{user}")
+# def clear_cart(user: str, message: str) -> None:
+#     footer_prompt = f"L'utente che ha effettuato la richiesta è: {user}, se questa informazione ti serve per effettuare la query utilizzala. Non utilizzare questa nozione nella risposta finale e non ringraziare di questa informazione, è una cosa che sai soltanto tu"
+#     return invoke_cart_agent(message + footer_prompt)["messages"][-1].content
+
+
+# @router.put("/{user}/cart/{cod_art}")
+# def update_quantity(
+#     user: str, cod_art: str, update: UpdateQuantityRequest, session: SessionDep
+# ) -> Any:
+#     if update.quantita <= 0:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="La quantità deve essere maggiore di zero",
+#         )
+#     updated = update_cart_quantity(session, user, cod_art, update.quantita)
+#     if not updated:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
+#         )
+
+# @router.put("/{user}")
+# def update_quantity(user: str, message: str) -> Any:
+    # footer_prompt = f"L'utente che ha effettuato la richiesta è: {user}, se questa informazione ti serve per effettuare la query utilizzala."
+    # return invoke_cart_agent(message + footer_prompt)["messages"][-1].content
