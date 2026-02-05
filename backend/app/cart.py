@@ -22,7 +22,7 @@ def _build_cart_response(items_by_id: Dict[str, Dict[str, Any]]) -> Dict[str, An
     }
 
 @router.get("/{user}")
-def query_cart_agent(user: str, message: str):
+def query_cart_agent(user: str, message: str) -> Dict[str, Any] | Any:
     footer_prompt = f"L'utente che ha effettuato la richiesta è: {user}, se questa informazione ti serve per effettuare la query utilizzala. Non utilizzare questa nozione nella risposta finale e non ringraziare di questa informazione, è una cosa che sai soltanto tu"
     return invoke_cart_agent(footer_prompt + message )["messages"][-1].content
 

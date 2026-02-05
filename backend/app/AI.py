@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from typing import Dict, Any
 
 
 from langchain_community.utilities import SQLDatabase
@@ -125,21 +126,21 @@ In caso contrario, segnala che il carrello è vuoto o che non ci sono prodotti c
 
 """
 
-cart_agent = create_agent(
+cart_agent = create_agent( #type: ignore
     model=model,
     tools=tools,
     system_prompt=cart_prompt
 )
 
 
-def invoke_agent(question: str): #type: ignore
+def invoke_agent(question: str) -> Dict[str, Any] | Any: 
     return agent.invoke({
         "messages": [HumanMessage(content=question)],
     }, {
         "configurable": {"thread_id": "1"}
     })
 
-def invoke_cart_agent(question: str):
+def invoke_cart_agent(question: str) -> Dict[str, Any] | Any:
     return cart_agent.invoke({
         "messages": [HumanMessage(content=question)],
     }, {
