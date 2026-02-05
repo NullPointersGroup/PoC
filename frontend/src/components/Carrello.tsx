@@ -15,7 +15,7 @@ interface CarrelloProps {
   onReloadCart: () => void;
 }
 
-export default function Carrello({ isOpen, onClose, cart, onRemoveItem, onReloadCart }: CarrelloProps) {
+export default function Carrello({ isOpen, onClose, cart, onRemoveItem}: CarrelloProps) {
   // USA I DATI REALI SE PRESENTI, ALTRIMENTI USA I MOCK PER IL TEST VISIVO, DA SISTEMARE APPENA SI IMPLEMENTA
   const displayCart = cart.length > 0 ? cart : MOCK_ITEMS;
 

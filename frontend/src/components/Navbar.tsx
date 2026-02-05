@@ -2,10 +2,14 @@ import { useState } from "react";
 import DeleteModal from "./DeleteModal";
 import Carrello from "./Carrello";
 
-export default function Navbar() {
+interface NavbarProps {
+  isCarrelloOpen: boolean;
+  setIsCarrelloOpen: (open: boolean) => void;
+}
+
+export default function Navbar({ isCarrelloOpen, setIsCarrelloOpen }: NavbarProps) {
   const [open, setOpen] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isCarrelloOpen, setIsCarrelloOpen] = useState(false);
 
   const handleClearChat = async () => {
     try {
@@ -53,8 +57,10 @@ export default function Navbar() {
       </div>
 
       {/* HEADER BIANCO con stato*/}
-      <header className={`absolute top-0 right-0 bg-white border-b px-4 py-3 flex items-center justify-between shadow-sm z-10 transition-all duration-300 ${
+      <header className={`absolute top-0 bg-white border-b px-4 py-3 flex items-center justify-between shadow-sm z-10 transition-all duration-300 ${
         open ? "left-64" : "left-16"
+      } ${
+        isCarrelloOpen ? "right-96" : "right-0"
       }`}>
         <div>
           <h1 className="text-xl font-bold text-blue-600">SmartOrder AI</h1>
@@ -84,7 +90,7 @@ export default function Navbar() {
       <Carrello 
         isOpen={isCarrelloOpen}
         onClose={() => setIsCarrelloOpen(false)}
-        cart={[]} // Ho messo un array vuoto così usa i MOCK_ITEMS che ci sono nel componente
+        cart={[]}
         onRemoveItem={(id) => console.log("Rimuovi item", id)}
         onReloadCart={() => console.log("Ricarica carrello")}
       />

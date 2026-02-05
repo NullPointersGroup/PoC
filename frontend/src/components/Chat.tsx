@@ -6,9 +6,13 @@ interface Message {
   timestamp?: Date;
 }
 
+interface ChatProps {
+  isCarrelloOpen: boolean;
+}
+
 const MAX_CHARS = 4096;
 
-export default function Chat() {
+export default function Chat({ isCarrelloOpen }: ChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -70,7 +74,9 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden pt-16">
+    <div className={`flex flex-col h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden pt-16 transition-all duration-300 ${
+      isCarrelloOpen ? "mr-96" : "mr-0"
+    }`}>
       {/* AREA MESSAGGI*/}
       <main className="flex-1 flex relative overflow-hidden">
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
