@@ -5,10 +5,11 @@ from starlette.status import HTTP_204_NO_CONTENT
 from .database import *
 from .schemas import *
 from typing import Annotated, Sequence, Any, Dict
-from sqlmodel import Session, select, delete, col
+from sqlmodel import Session, select, delete
 from .mex import create_conversation, get_messages, add_message
 from pydantic import BaseModel
 from .cart import router as cart_router
+from .AI import invoke_agent
 
 
 class UpdateQuantityRequest(BaseModel):
@@ -64,10 +65,6 @@ def send_message(
 
     return {"reply": reply}
 
-
-from sqlmodel import delete
-
-
 @app.delete("/conversazioni/{conv_id}")
 def delete_conversation(
     conv_id: int, session: Session = Depends(get_session)
@@ -78,17 +75,6 @@ def delete_conversation(
         "status": "ok",
         "message": f"Messaggi della conversazione {conv_id} eliminati",
     }
-
-
-# @app.get("/ai/{info}")
-# def print_ai(info: str, session: SessionDep) -> Any:
-#     if info =="utenti":
-#       return get_all_users(session)
-#     if info =="articoli":
-#         return get_all_anagrafica_articolo(session)
-#     return {"response": "Errore, non è possibile ottenere le info"}
-""
-
 
 @app.get("/")
 def root() -> dict[str, str]:
@@ -150,10 +136,6 @@ def send_message(conv_id: int, testo: str, session: Session = Depends(get_sessio
     return {"reply": risposta_ai}
 """
 
-
-from .AI import invoke_agent
-
-
 @app.get("/ai")
 def query_ai(message: str) -> dict[str, Any] | Any:
     risposta = invoke_agent(message)
@@ -168,7 +150,7 @@ def get_user_cart(user: str, session: SessionDep) -> Any:
     return carrello
 
 
-@app.delete("/{user}/cart/{cod_art}", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/{user}/cart/{cod_art}")
 def delete_cart_article(user: str, cod_art: str, session: SessionDep) -> Any:
     removed = remove_from_cart(session, user, cod_art)
 
@@ -180,7 +162,7 @@ def delete_cart_article(user: str, cod_art: str, session: SessionDep) -> Any:
     return None
 
 
-@app.delete("/{user}/cart", status_code=status.HTTP_204_NO_CONTENT)
+@app.delete("/{user}/cart")
 def clear_cart(user: str, session: SessionDep) -> Any:
     clear_user_cart(session, user)
 
