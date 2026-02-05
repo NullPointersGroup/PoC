@@ -84,6 +84,9 @@ export default function Navbar() {
       <Carrello 
         isOpen={isCarrelloOpen}
         onClose={() => setIsCarrelloOpen(false)}
+        cart={[]} // Ho messo un array vuoto così usa i MOCK_ITEMS che ci sono nel componente
+        onRemoveItem={(id) => console.log("Rimuovi item", id)}
+        onReloadCart={() => console.log("Ricarica carrello")}
       />
     </>
   );
