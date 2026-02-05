@@ -1,5 +1,11 @@
 from pydantic import BaseModel
 from .models import RoleEnum
+from sqlmodel import Session
+from fastapi import Depends
+from typing import Annotated
+from .database import get_session
+
+SessionDep = Annotated[Session, Depends(get_session)]
 
 class UserOut(BaseModel):
     username: str
@@ -24,3 +30,15 @@ class ChatReply(BaseModel):
 
 class MessagePayload(BaseModel):
     testo: str
+
+
+class UpdateQuantityRequest(BaseModel):
+    quantita: int
+
+
+class CartAddRequest(BaseModel):
+    conversation_id: int
+    product_id: str
+    name: str
+    qty: int
+    price: float

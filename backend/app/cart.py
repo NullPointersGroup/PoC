@@ -1,18 +1,10 @@
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from fastapi import APIRouter, status, HTTPException
 from typing import Any, Dict
+from .api import SessionDep
+from .database import *
+from .schemas import UpdateQuantityRequest, CartAddRequest
 
 router = APIRouter(prefix="/cart", tags=["cart"])
-
-
-class CartAddRequest(BaseModel):
-    conversation_id: int
-    product_id: str
-    name: str
-    qty: int
-    price: float
-
 
 # In-memory carts keyed by conversation_id
 _CARTS: Dict[int, Dict[str, Dict[str, Any]]] = {}
@@ -49,3 +41,43 @@ def add_to_cart(payload: CartAddRequest) -> Dict[str, Any]:
         "message": f"Aggiunto: {payload.name} x{payload.qty}",
         "cart": cart_summary,
     }
+
+
+@router.get("/{user}/cart")
+def get_user_cart(user: str, session: SessionDep) -> Any:
+    carrello = get_cart(session, user)
+    if not carrello:
+        return []
+    return carrello
+
+@router.delete("/{user}/cart/{cod_art}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cart_article(user: str, cod_art: str, session: SessionDep) -> None:
+    removed = remove_from_cart(session, user, cod_art)
+
+    if not removed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
+        )
+
+
+@router.delete("/{user}/cart", status_code=status.HTTP_204_NO_CONTENT)
+def clear_cart(user: str, session: SessionDep) -> None:
+    clear_user_cart(session, user)
+
+
+@router.put("/{user}/cart/{cod_art}")
+def update_quantity(
+    user: str, cod_art: str, update: UpdateQuantityRequest, session: SessionDep
+) -> Any:
+    if update.quantita <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La quantità deve essere maggiore di zero",
+        )
+    updated = update_cart_quantity(session, user, cod_art, update.quantita)
+    if not updated:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
+        )
