@@ -1,20 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException, Path, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import AfterValidator
-from starlette.status import HTTP_204_NO_CONTENT
 from .database import *
 from .schemas import *
 from typing import Annotated, Sequence, Any, Dict
 from sqlmodel import Session, select, delete
 from .mex import create_conversation, get_messages, add_message
-from pydantic import BaseModel
 from .cart import router as cart_router
 from .AI import invoke_agent
-
-
-class UpdateQuantityRequest(BaseModel):
-    quantita: int
-
 
 app = FastAPI()
 
@@ -27,8 +20,6 @@ app.add_middleware(
 
 app.include_router(cart_router)
 
-SessionDep = Annotated[Session, Depends(get_session)]
-
 
 def get_global_conversation(session: Session) -> int:
     conv = session.exec(select(Conversazioni).limit(1)).first()
@@ -38,7 +29,7 @@ def get_global_conversation(session: Session) -> int:
 
 
 @app.post("/chat", response_model=ChatReply)
-def chat(req: ChatRequest, session: Session = Depends(get_session)) -> ChatReply:
+def chat(req: ChatRequest, session: SessionDep) -> ChatReply:
     conv_id = req.conv_id or get_global_conversation(session)
 
     add_message(session, conv_id, RoleEnum.user, req.message)
@@ -50,8 +41,7 @@ def chat(req: ChatRequest, session: Session = Depends(get_session)) -> ChatReply
 
 @app.post("/conversazioni/1/messaggi")
 def send_message(
-    payload: MessagePayload, session: Session = Depends(get_session)
-) -> Dict[str, str]:
+    payload: MessagePayload, session: SessionDep ) -> Dict[str, str]:
     testo = payload.testo
     if not testo:
         return {"reply": "Messaggio vuoto"}
@@ -67,8 +57,7 @@ def send_message(
 
 @app.delete("/conversazioni/{conv_id}")
 def delete_conversation(
-    conv_id: int, session: Session = Depends(get_session)
-) -> dict[str, str]:
+    conv_id: int, session: SessionDep) -> dict[str, str]:
     session.exec(delete(Messaggi).where(Messaggi.conversazione_id == conv_id))  # type: ignore
     session.commit()
     return {
@@ -125,60 +114,8 @@ def read_messages(conv_id: int, session: SessionDep) -> Any:
     return get_messages(session, conv_id)
 
 
-"""
-@app.post("/conversazioni/{conv_id}/messaggi")
-def send_message(conv_id: int, testo: str, session: Session = Depends(get_session)) -> dict[str, str]:
-    add_message(session, conv_id, RoleEnum.user, testo)
-    
-    risposta_ai = result["messages"][-1].content
-    
-    add_message(session, conv_id, RoleEnum.assistant, risposta_ai)
-    return {"reply": risposta_ai}
-"""
-
 @app.get("/ai")
 def query_ai(message: str) -> dict[str, Any] | Any:
     risposta = invoke_agent(message)
     return risposta["messages"][-1]
 
-
-@app.get("/{user}/cart")
-def get_user_cart(user: str, session: SessionDep) -> Any:
-    carrello = get_cart(session, user)
-    if not carrello:
-        return []
-    return carrello
-
-
-@app.delete("/{user}/cart/{cod_art}")
-def delete_cart_article(user: str, cod_art: str, session: SessionDep) -> Any:
-    removed = remove_from_cart(session, user, cod_art)
-
-    if not removed:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
-        )
-    return None
-
-
-@app.delete("/{user}/cart")
-def clear_cart(user: str, session: SessionDep) -> Any:
-    clear_user_cart(session, user)
-
-
-@app.put("/{user}/cart/{cod_art}")
-def update_quantity(
-    user: str, cod_art: str, update: UpdateQuantityRequest, session: SessionDep
-) -> Any:
-    if update.quantita <= 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="La quantità deve essere maggiore di zero",
-        )
-    updated = update_cart_quantity(session, user, cod_art, update.quantita)
-    if not updated:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Articolo {cod_art} non trovato nel carrello dell'utente {user}",
-        )
