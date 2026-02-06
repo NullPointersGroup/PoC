@@ -8,15 +8,13 @@ interface NavbarProps {
   setIsCarrelloOpen: (open: boolean) => void;
   cart: CartItem[];
   onReloadCart: () => void;
-  onClearCart: () => void;
 }
 
 export default function Navbar({
   isCarrelloOpen,
   setIsCarrelloOpen,
   cart,
-  onReloadCart,
-  onClearCart,
+  onReloadCart
 }: NavbarProps) {
   const [open, setOpen] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -107,7 +105,6 @@ export default function Navbar({
         isOpen={isCarrelloOpen}
         onClose={() => setIsCarrelloOpen(false)}
         cart={cart}
-        onClearCart={onClearCart}
       />
     </>
   );

@@ -27,15 +27,6 @@ function App() {
     }
   }, []);
 
-  const clearCart = useCallback(async () => {
-    try {
-      await fetch(`${API_BASE_URL}/cart`, { method: "DELETE" });
-      setCart([]);
-    } catch (error) {
-      console.error("Errore nella pulizia carrello:", error);
-    }
-  }, []);
-
   useEffect(() => {
     reloadCart();
   }, []);
@@ -47,7 +38,6 @@ function App() {
         setIsCarrelloOpen={setIsCarrelloOpen}
         cart={cart}
         onReloadCart={reloadCart}
-        onClearCart={clearCart}
       />
       <div className="flex-1 flex flex-col">
         <Chat isCarrelloOpen={isCarrelloOpen} onCartUpdated={reloadCart} />

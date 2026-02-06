@@ -4,14 +4,12 @@ interface CarrelloProps {
   isOpen: boolean;
   onClose: () => void;
   cart: CartItem[];
-  onClearCart: () => void;
 }
 
 export default function Carrello({
   isOpen,
   onClose,
-  cart,
-  onClearCart,
+  cart
 }: CarrelloProps) {
   if (!isOpen) return null;
 
