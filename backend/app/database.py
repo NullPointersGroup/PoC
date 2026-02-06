@@ -31,12 +31,11 @@ def get_all_ordes(session: Session) -> Sequence[Ordine]:
     return session.exec(select(Ordine).limit(3)).all()
 
 
-def get_cart(session: Session, user: str) -> Sequence[CarrelloDTO]:
+def get_cart(session: Session) -> Sequence[CarrelloDTO]:
     statement = (
         select(Carrello.prodotto, Carrello.quantita, AnagraficaArticolo.des_art)
         .select_from(Carrello)
         .join(AnagraficaArticolo)
-        .where(Carrello.utente == user)
         .where(Carrello.prodotto == AnagraficaArticolo.cod_art)
     )
     results = session.exec(statement).all()
@@ -47,10 +46,8 @@ def get_cart(session: Session, user: str) -> Sequence[CarrelloDTO]:
     ]
 
 
-def remove_from_cart(session: Session, user: str, cod_art: str) -> bool:
-    statement = select(Carrello).where(
-        Carrello.utente == user, Carrello.prodotto == cod_art
-    )
+def remove_from_cart(session: Session, cod_art: str) -> bool:
+    statement = select(Carrello).where(Carrello.prodotto == cod_art)
     carrello_item = session.exec(statement).first()
 
     if carrello_item:
@@ -60,8 +57,8 @@ def remove_from_cart(session: Session, user: str, cod_art: str) -> bool:
     return False
 
 
-def clear_user_cart(session: Session, user: str) -> None:
-    statement = select(Carrello).where(Carrello.utente == user)
+def clear_cart(session: Session) -> None:
+    statement = select(Carrello)
     items = session.exec(statement).all()
 
     for item in items:
@@ -69,12 +66,8 @@ def clear_user_cart(session: Session, user: str) -> None:
     session.commit()
 
 
-def update_cart_quantity(
-    session: Session, user: str, cod_art: str, quantita: int
-) -> bool:
-    statement = select(Carrello).where(
-        Carrello.utente == user, Carrello.prodotto == cod_art
-    )
+def update_cart_quantity(session: Session, cod_art: str, quantita: int) -> bool:
+    statement = select(Carrello).where(Carrello.prodotto == cod_art)
     item = session.exec(statement).first()
 
     if item:

@@ -62,7 +62,6 @@ class Messaggi(SQLModel, table=True):
 
 class Carrello(SQLModel, table=True):
     __tablename__: ClassVar[str] = "carrello"
-    utente: str = Field(foreign_key="utentiweb.username", primary_key=True)
     prodotto: str = Field(foreign_key="anaart.cod_art", primary_key=True)
     quantita: int
 
