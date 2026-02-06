@@ -4,6 +4,7 @@ from .schemas import SessionDep
 from .database import get_cart, remove_from_cart
 from .models import CarrelloDTO
 from .AI import invoke_cart_agent
+from typing import Dict, Any
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 

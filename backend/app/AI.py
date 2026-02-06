@@ -1,11 +1,11 @@
 import os
 from dotenv import load_dotenv
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from .database import get_cart, get_session, get_all_anagrafica_articolo
 from .models import *
 from openai import OpenAI
-import faiss
+import faiss #type: ignore
 import numpy as np
 
 from langchain_community.utilities import SQLDatabase
@@ -14,7 +14,7 @@ from langchain.agents import create_agent
 from langchain.messages import HumanMessage
 from langchain.tools import tool
 from langchain_openai import ChatOpenAI
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer #type: ignore
 
 _transformer_model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -26,12 +26,29 @@ _DB = SQLDatabase.from_uri(os.getenv("DATABASE_URL")) #type: ignore
 
 _model = ChatOpenAI(model="gpt-4", temperature=0.1, api_key=_OPEN_API_KEY) #type: ignore
 
-_cart_texts = [(el.prodotto, el.des_art) for el in get_cart(next(get_session()))]
+_cart_texts = [
+    (el.prodotto, el.des_art) 
+    for el in get_cart(next(get_session())) 
+    if el.des_art is not None
+]
 
-_catalogo_texts = [ (el.cod_art, el.des_art) for el in get_all_anagrafica_articolo(next(get_session()))]
+_catalogo_texts = [
+    (el.cod_art, el.des_art) 
+    for el in get_all_anagrafica_articolo(next(get_session()))
+    if el.des_art is not None
+]
 
-def _trova_vicini(distances, indices, texts, threshold):
-    res = []
+from typing import List, Dict, Tuple, Any
+import numpy as np
+import numpy.typing as npt
+
+def _trova_vicini(
+    distances: npt.NDArray[np.float32], 
+    indices: npt.NDArray[np.int64], 
+    texts: List[Tuple[str, str]], 
+    threshold: float
+) -> List[Dict[str, str]]:
+    res: List[Dict[str, str]] = []
     for dist, indx in zip(distances, indices):
         for d, i in zip(dist, indx):
             if d <= threshold:
@@ -42,7 +59,7 @@ def _trova_vicini(distances, indices, texts, threshold):
     return res
 
 # @tool
-def cerca_in_carrello(prodotto: str):
+def cerca_in_carrello(prodotto: str) -> List[Dict[str, str]] | str:
     """Cerca un prodotto nel carrello e restituisce i prodotti più vicini trovati. """
     # Il threshold deve essere un valore compreso tra 0.55 e 1.5 in base a quanto specifico è il prodotto. Con prodotto specifico intendo quanto è argomentato, per esempio 'acqua' è il minimo della specificità, mentre 'acqua uliveto pet 150'
     # testi del carrello
@@ -110,7 +127,7 @@ _catalog_index = faiss.IndexFlatL2(dim)
 _catalog_index.add(vectors)
 
 # @tool
-def cerca_in_catalogo(prodotto: str):
+def cerca_in_catalogo(prodotto: str) -> List[Dict[str, str]] | str:
     """Cerca un prodotto nel catalogo e restituisce i prodotti più vicini trovati. """
     query_vector = _transformer_model.encode(
         prodotto,
@@ -138,8 +155,8 @@ def cerca_in_catalogo(prodotto: str):
     return "Non c'è il prodotto richiesto nel carrello"
 
 tools = SQLDatabaseToolkit(db=_DB, llm=_model).get_tools()
-tools.append(cerca_in_carrello)
-tools.append(cerca_in_catalogo)
+tools.append(cerca_in_carrello) #type: ignore
+tools.append(cerca_in_catalogo) #type: ignore
 
 cart_prompt = """
 Sei un assistente SQL esperto. Devi generare query **solo** per aggiornare la tabella "carrello". 
