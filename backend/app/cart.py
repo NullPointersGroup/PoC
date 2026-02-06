@@ -22,5 +22,5 @@ def _build_cart_response(items_by_id: Dict[str, Dict[str, Any]]) -> Dict[str, An
     }
 
 @router.get("/{user}")
-def query_cart_agent(message: str) -> Dict[str, Any] | Any:
-    return invoke_cart_agent(message )["messages"][-1].content
+def query_cart_agent(user: str, message: str) -> Dict[str, Any] | Any:
+    return invoke_cart_agent(message)["messages"][-1].content

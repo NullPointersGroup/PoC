@@ -24,19 +24,18 @@ def get_all_anagrafica_cliente(session: Session) -> Sequence[AnagraficaCliente]:
 
 
 def get_all_anagrafica_articolo(session: Session) -> Sequence[AnagraficaArticolo]:
-    return session.exec(select(AnagraficaArticolo).limit(3)).all()
+    return session.exec(select(AnagraficaArticolo)).all()
 
 
 def get_all_ordes(session: Session) -> Sequence[Ordine]:
     return session.exec(select(Ordine).limit(3)).all()
 
 
-def get_cart(session: Session, user: str) -> Sequence[CarrelloDTO]:
+def get_cart(session: Session) -> Sequence[CarrelloDTO]:
     statement = (
         select(Carrello.prodotto, Carrello.quantita, AnagraficaArticolo.des_art)
         .select_from(Carrello)
         .join(AnagraficaArticolo)
-        .where(Carrello.utente == user)
         .where(Carrello.prodotto == AnagraficaArticolo.cod_art)
     )
     results = session.exec(statement).all()
