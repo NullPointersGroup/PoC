@@ -10,10 +10,13 @@ import numpy as np
 
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
-from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
 from langchain.messages import HumanMessage
 from langchain.tools import tool
+from langchain_openai import ChatOpenAI
+from sentence_transformers import SentenceTransformer
+
+_transformer_model = SentenceTransformer('all-MiniLM-L6-v2')
 
 
 load_dotenv()
@@ -22,12 +25,10 @@ _OPEN_API_KEY = os.getenv("OPENAI_API_KEY")
 _DB = SQLDatabase.from_uri(os.getenv("DATABASE_URL")) #type: ignore
 
 _model = ChatOpenAI(model="gpt-4", temperature=0.1, api_key=_OPEN_API_KEY) #type: ignore
-_TRANSALATOR_MODEL = "text-embedding-3-large" #large pk prodotti molto simili ed è più facile da gestire le ambiguità
 
 _cart_texts = [(el.prodotto, el.des_art) for el in get_cart(next(get_session()))]
 
 _catalogo_texts = [ (el.cod_art, el.des_art) for el in get_all_anagrafica_articolo(next(get_session()))]
-_client = OpenAI()
 
 def _trova_vicini(distances, indices, texts, threshold):
     res = []
@@ -40,34 +41,40 @@ def _trova_vicini(distances, indices, texts, threshold):
                 break
     return res
 
-@tool
-def cerca_in_carrello(prodotto: str, threshold: float):
-    """Cerca un prodotto nel carrello e restituisce i prodotti più vicini trovati.  Il threshold deve essere un valore compreso tra 0.55 e 1.5 in base a quanto specifico è il prodotto. Con prodotto specifico intendo quanto è argomentato, per esempio 'acqua' è il minimo della specificità, mentre 'acqua uliveto pet 150'"""
+# @tool
+def cerca_in_carrello(prodotto: str):
+    """Cerca un prodotto nel carrello e restituisce i prodotti più vicini trovati. """
+    # Il threshold deve essere un valore compreso tra 0.55 e 1.5 in base a quanto specifico è il prodotto. Con prodotto specifico intendo quanto è argomentato, per esempio 'acqua' è il minimo della specificità, mentre 'acqua uliveto pet 150'
+    # testi del carrello
     cart_des = [el[1] for el in _cart_texts]
-    embeddings_response = _client.embeddings.create(
-        model= _TRANSALATOR_MODEL,
-        input= cart_des
-    )
 
-    # estrai vettori in formato numpy array float32 (FAISS richiede float32)
-    vectors = np.array([d.embedding for d in embeddings_response.data], dtype=np.float32)
+    # embedding del carrello → (N, 384)
+    vectors = _transformer_model.encode(
+        cart_des,
+        convert_to_numpy=True,
+        normalize_embeddings=True
+    ).astype(np.float32)
 
-
+    # inizializza FAISS
     dim = vectors.shape[1]
     index = faiss.IndexFlatL2(dim)
-
     index.add(vectors)
 
-    query_embedding = _client.embeddings.create(
-        model= _TRANSALATOR_MODEL,
-        input=prodotto
-    )
+    # embedding della query → (1, 384)
+    query_vector = _transformer_model.encode(
+        prodotto,
+        convert_to_numpy=True,
+        normalize_embeddings=True
+    ).astype(np.float32)
 
-    query_vector = np.array([query_embedding.data[0].embedding], dtype=np.float32)
+    if query_vector.ndim == 1:
+        query_vector = query_vector.reshape(1, -1)
 
+    # search
     k = 5
     distances, indices = index.search(query_vector, k)
 
+    # soglie (ok tenerle così)
     parole = prodotto.strip().split(" ")
     if len(parole) == 1:
         threshold = 1.4
@@ -75,44 +82,44 @@ def cerca_in_carrello(prodotto: str, threshold: float):
         threshold = 0.85
     else:
         threshold = 0.55
-    
 
     vicini = _trova_vicini(distances, indices, _cart_texts, threshold)
+
     print(indices, distances)
-    if len(vicini) > 0:
+
+    if vicini:
         return vicini
+
     return "Non c'è il prodotto richiesto nel carrello"
 
+print(cerca_in_carrello("acqua"))
 
 # creazione statica, dato che il catalogo difficilmente cambia è più efficiente crearlo una sola volta
 # la creazione dell'index è abbastanza, per questo lo faccio
-_batch_size = 50  # 50 testi per batch, ridurre se rete lenta
-_all_vectors = []
 
-for i in range(0, len(_catalogo_texts), _batch_size):
-    _batch = _catalogo_texts[i:i+_batch_size]
-    _testi = [el[1] for el in _batch]
-    _res = _client.embeddings.create(
-        model= _TRANSALATOR_MODEL,
-        input=_testi
-    )
-    # estrai i vettori e aggiungi a lista
-    _all_vectors.extend([d.embedding for d in _res.data])
+catalogo_des = [el[1] for el in _catalogo_texts]
+vectors = _transformer_model.encode(
+    catalogo_des,
+    convert_to_numpy=True,
+    normalize_embeddings=True
+).astype(np.float32)
 
-_vectors = np.array(_all_vectors, dtype=np.float32)
+# inizializza FAISS
+dim = vectors.shape[1]
+_catalog_index = faiss.IndexFlatL2(dim)
+_catalog_index.add(vectors)
 
-_dim = _vectors.shape[1]
-_catalog_index = faiss.IndexFlatL2(_dim)
-_catalog_index.add(_vectors)
-
-@tool
+# @tool
 def cerca_in_catalogo(prodotto: str):
     """Cerca un prodotto nel catalogo e restituisce i prodotti più vicini trovati. """
-    query_embedding = _client.embeddings.create(
-        model=_TRANSALATOR_MODEL,
-        input=prodotto
-    )
-    query_vector = np.array([query_embedding.data[0].embedding], dtype=np.float32)
+    query_vector = _transformer_model.encode(
+        prodotto,
+        convert_to_numpy=True,
+        normalize_embeddings=True
+    ).astype(np.float32)
+
+    if query_vector.ndim == 1:
+        query_vector = query_vector.reshape(1, -1)
 
     k = 5
     distances, indices = _catalog_index.search(query_vector, k)
