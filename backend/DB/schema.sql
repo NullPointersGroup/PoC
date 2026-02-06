@@ -1,4 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE TABLE anaart (
     cod_art VARCHAR(13) PRIMARY KEY,
     des_art VARCHAR(255),
@@ -30,9 +32,6 @@ CREATE TABLE messaggi(
     data_invio TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_messaggi_conversazione_id ON messaggi(conversazione_id);
-CREATE INDEX idx_messaggi_data_invio ON messaggi(data_invio);
-
 CREATE TABLE utentiweb (
     username VARCHAR(255) PRIMARY KEY,
     descrizione VARCHAR(80),
@@ -60,5 +59,13 @@ CREATE TABLE carrello(utente varchar(255),
 		      prodotto varchar(13),
 		      quantita INTEGER,
     CONSTRAINT fk_cart_utentiweb FOREIGN KEY (utente) REFERENCES utentiweb(username),
-    CONSTRAINT fk_cart_anaart FOREIGN KEY (prodotto) REFERENCES anaart(cod_art)
+    CONSTRAINT fk_cart_anaart FOREIGN KEY (prodotto) REFERENCES anaart(cod_art),
+    PRIMARY KEY (utente, prodotto)
 );
+
+CREATE INDEX idx_carrello_prodotto ON carrello(prodotto);
+CREATE INDEX idx_carrello_utente ON carrello(utente);
+CREATE INDEX idx_anaart_des_art_trgm
+ON anaart USING GIN (des_art gin_trgm_ops);
+CREATE INDEX idx_messaggi_conversazione_id ON messaggi(conversazione_id);
+CREATE INDEX idx_messaggi_data_invio ON messaggi(data_invio);
