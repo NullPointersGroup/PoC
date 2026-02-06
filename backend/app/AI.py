@@ -2,117 +2,188 @@ import os
 from dotenv import load_dotenv
 from typing import Dict, Any
 
+from .database import get_cart, get_session, get_all_anagrafica_articolo
+from .models import *
+from openai import OpenAI
+import faiss
+import numpy as np
 
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
-from langchain_openai import ChatOpenAI
 from langchain.agents import create_agent
 from langchain.messages import HumanMessage
+from langchain.tools import tool
+from langchain_openai import ChatOpenAI
+from sentence_transformers import SentenceTransformer
+
+_transformer_model = SentenceTransformer('all-MiniLM-L6-v2')
+
 
 load_dotenv()
 
-OPEN_API_KEY = os.getenv("OPENAI_API_KEY")
-DB = SQLDatabase.from_uri(os.getenv("DATABASE_URL")) #type: ignore
+_OPEN_API_KEY = os.getenv("OPENAI_API_KEY")
+_DB = SQLDatabase.from_uri(os.getenv("DATABASE_URL")) #type: ignore
 
-model = ChatOpenAI(model="gpt-5", temperature=0.1, api_key=OPEN_API_KEY) #type: ignore
+_model = ChatOpenAI(model="gpt-4", temperature=0.1, api_key=_OPEN_API_KEY) #type: ignore
 
-tools = SQLDatabaseToolkit(db=DB, llm=model).get_tools()
+_cart_texts = [(el.prodotto, el.des_art) for el in get_cart(next(get_session()))]
 
-cart_prompt = """Sei un esperto SQL e devi operare ESCLUSIVAMENTE sul seguente schema database.
+_catalogo_texts = [ (el.cod_art, el.des_art) for el in get_all_anagrafica_articolo(next(get_session()))]
 
-CREATE TABLE carrello (
-    prodotto VARCHAR(13),        -- codice articolo presente in anaart.cod_art
-    quantita INTEGER,
-    CONSTRAINT fk_cart_anaart FOREIGN KEY (prodotto) REFERENCES anaart(cod_art),
-    PRIMARY KEY (prodotto)
-);
+def _trova_vicini(distances, indices, texts, threshold):
+    res = []
+    for dist, indx in zip(distances, indices):
+        for d, i in zip(dist, indx):
+            if d <= threshold:
+                cod_art, des_art = texts[i]
+                res.append({"cod_art": cod_art, "des_art": des_art})
+            else:
+                break
+    return res
 
-CREATE TABLE anaart (
-    cod_art VARCHAR(13) PRIMARY KEY,  -- codice univoco dell'articolo
-    des_art VARCHAR(255)              -- descrizione testuale dell'articolo (IN MAIUSCOLO)
-);
+# @tool
+def cerca_in_carrello(prodotto: str):
+    """Cerca un prodotto nel carrello e restituisce i prodotti più vicini trovati. """
+    # Il threshold deve essere un valore compreso tra 0.55 e 1.5 in base a quanto specifico è il prodotto. Con prodotto specifico intendo quanto è argomentato, per esempio 'acqua' è il minimo della specificità, mentre 'acqua uliveto pet 150'
+    # testi del carrello
+    cart_des = [el[1] for el in _cart_texts]
 
---------------------------------------------------------------------
-REGOLE DI ACCESSO AL DATABASE
---------------------------------------------------------------------
+    # embedding del carrello → (N, 384)
+    vectors = _transformer_model.encode(
+        cart_des,
+        convert_to_numpy=True,
+        normalize_embeddings=True
+    ).astype(np.float32)
 
-- Sono CONSENTITE operazioni di SELECT su:
-  - carrello
-  - anaart
+    # inizializza FAISS
+    dim = vectors.shape[1]
+    index = faiss.IndexFlatL2(dim)
+    index.add(vectors)
 
-- Sono CONSENTITE operazioni di INSERT, UPDATE, DELETE SOLO sulla tabella:
-  - carrello
+    # embedding della query → (1, 384)
+    query_vector = _transformer_model.encode(
+        prodotto,
+        convert_to_numpy=True,
+        normalize_embeddings=True
+    ).astype(np.float32)
 
-- NON è consentito effettuare INSERT, UPDATE o DELETE su tabelle diverse da carrello
+    if query_vector.ndim == 1:
+        query_vector = query_vector.reshape(1, -1)
 
-- NON descrivere mai le query SQL eseguite
-- NON mentire mai sull'esito delle operazioni
+    # search
+    k = 5
+    distances, indices = index.search(query_vector, k)
 
---------------------------------------------------------------------
-PASSAGGIO OBBLIGATORIO E BLOCCANTE - CONTEGGIO PRODOTTI
---------------------------------------------------------------------
+    # soglie (ok tenerle così)
+    parole = prodotto.strip().split(" ")
+    if len(parole) == 1:
+        threshold = 1.4
+    elif len(parole) == 2:
+        threshold = 0.85
+    else:
+        threshold = 0.55
 
-PRIMA di eseguire qualsiasi operazione SQL (inclusa ogni SELECT):
+    vicini = _trova_vicini(distances, indices, _cart_texts, threshold)
 
-1. Estrai TUTTI i prodotti distinti menzionati nel messaggio dell’utente
-2. Conta il numero di prodotti distinti menzionati (a livello semantico)
+    print(indices, distances)
 
-SE il numero di prodotti distinti è > 10:
-- INTERROMPI IMMEDIATAMENTE l'esecuzione
-- NON eseguire ALCUNA query SQL
-- NON procedere con identificazione, INSERT, UPDATE o DELETE
-- Rispondi ESCLUSIVAMENTE informando l'utente che può gestire al massimo 10 prodotti per messaggio
+    if vicini:
+        return vicini
 
---------------------------------------------------------------------
-LOGICA DI IDENTIFICAZIONE DEL PRODOTTO
---------------------------------------------------------------------
+    return "Non c'è il prodotto richiesto nel carrello"
 
-Esegui questa logica SOLO se il conteggio prodotti è andato a buon fine.
+print(cerca_in_carrello("acqua"))
 
-1. Quando l'utente menziona un prodotto generico (es. “acqua”, “birra”, “olio”):
-   - Esegui una SELECT sul carrello con JOIN su anaart
-   - Usa ILIKE o confronto case-insensitive
-   - Limita i risultati a massimo 5
+# creazione statica, dato che il catalogo difficilmente cambia è più efficiente crearlo una sola volta
+# la creazione dell'index è abbastanza, per questo lo faccio
 
-2. SE trovi uno o più prodotti nel carrello che corrispondono:
-   - Usa il codice già presente in carrello.prodotto
-   - Procedi con UPDATE
+catalogo_des = [el[1] for el in _catalogo_texts]
+vectors = _transformer_model.encode(
+    catalogo_des,
+    convert_to_numpy=True,
+    normalize_embeddings=True
+).astype(np.float32)
 
-3. SOLO SE non trovi alcun prodotto nel carrello:
-   - Cerca il prodotto in anaart
-   - Inserisci una nuova riga in carrello con INSERT
+# inizializza FAISS
+dim = vectors.shape[1]
+_catalog_index = faiss.IndexFlatL2(dim)
+_catalog_index.add(vectors)
 
---------------------------------------------------------------------
-GESTIONE QUANTITÀ
---------------------------------------------------------------------
+# @tool
+def cerca_in_catalogo(prodotto: str):
+    """Cerca un prodotto nel catalogo e restituisce i prodotti più vicini trovati. """
+    query_vector = _transformer_model.encode(
+        prodotto,
+        convert_to_numpy=True,
+        normalize_embeddings=True
+    ).astype(np.float32)
 
-- Operazione DISTRUTTIVA:
-  - “metti 5 bottiglie” → SET quantita = 5
+    if query_vector.ndim == 1:
+        query_vector = query_vector.reshape(1, -1)
 
-- Operazione INTEGRATIVA:
-  - “aggiungi 3 bottiglie” → SET quantita = quantita + 3
+    k = 5
+    distances, indices = _catalog_index.search(query_vector, k)
 
---------------------------------------------------------------------
-CASI LIMITE
---------------------------------------------------------------------
+    parole = prodotto.strip().split(" ")
+    if len(parole) == 1:
+        threshold = 1.4
+    elif len(parole) == 2:
+        threshold = 0.85
+    else:
+        threshold = 0.55
 
-Se l'utente chiede di modificare, aggiornare o rimuovere prodotti
-e NON esiste alcun prodotto corrispondente nel carrello:
+    vicini = _trova_vicini(distances, indices, _catalogo_texts, threshold)
+    if len(vicini) > 0:
+        return vicini
+    return "Non c'è il prodotto richiesto nel carrello"
 
-- NON dire che l'operazione è stata eseguita
-- NON dire che qualcosa è stato eliminato o aggiornato
-- Rispondi chiaramente che il carrello è vuoto
-  oppure che non ci sono prodotti da modificare
+tools = SQLDatabaseToolkit(db=_DB, llm=_model).get_tools()
+tools.append(cerca_in_carrello)
+tools.append(cerca_in_catalogo)
 
-Un'operazione è considerata “andata a buon fine” SOLO se:
-- almeno una quantità è stata effettivamente inserita, aggiornata o rimossa
+cart_prompt = """
+Sei un assistente SQL esperto. Devi generare query **solo** per aggiornare la tabella "carrello". 
+Non inventare codici prodotto: usa esclusivamente i codici restituiti dai tool.
 
-In caso contrario:
-- segnala che il carrello è vuoto o che non ci sono prodotti corrispondenti
+Tool disponibili:
+
+- cerca_in_carrello(prodotto: str) → restituisce lista di prodotti trovati nel carrello
+- cerca_in_catalogo(prodotto: str) → restituisce lista di prodotti trovati nel catalogo
+
+Logica da seguire:
+
+1. Estrai tutti i prodotti menzionati dall’utente.  
+   - Se ci sono più di 10 prodotti distinti, rispondi solo:  
+     "Puoi gestire al massimo 10 prodotti per messaggio."  
+     e interrompi l’esecuzione.
+
+2. Per ciascun prodotto menzionato:
+
+   a. Chiama `cerca_in_carrello(prodotto)`.  
+      - Se trova uno o più match:  
+        - Se c’è un solo match sicuro, genera **UPDATE** o **DELETE** usando i codici restituiti.  
+          - "metti X" → `SET quantita = X`  
+          - "aggiungi X" → `SET quantita = quantita + X`  
+          - "rimuovi" → elimina il prodotto dal carrello  
+        - Se ci sono più match possibili per lo stesso prodotto, segnala all’utente e attendi conferma prima di generare la query.
+      
+      - Se non trova nulla nel carrello:  
+        - Chiama `cerca_in_catalogo(prodotto)`.  
+        - Se trova uno o più match sicuri, genera **INSERT** nel carrello con la quantità indicata.  
+        - Se ci sono più match possibili, segnala all’utente e attendi conferma prima di generare la query.
+
+3. Non fare mai UPDATE, INSERT o DELETE su altre tabelle.
+
+4. Risposta all’utente:  
+   - Indica solo l’esito finale: prodotto aggiornato, inserito o rimosso.  
+   - Non descrivere né mostrare la query SQL né il processo interno.
+
 """
 
+
+
 cart_agent = create_agent( #type: ignore
-    model=model,
+    model=_model,
     tools=tools,
     system_prompt=cart_prompt
 )

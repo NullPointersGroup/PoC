@@ -24,7 +24,7 @@ def get_all_anagrafica_cliente(session: Session) -> Sequence[AnagraficaCliente]:
 
 
 def get_all_anagrafica_articolo(session: Session) -> Sequence[AnagraficaArticolo]:
-    return session.exec(select(AnagraficaArticolo).limit(3)).all()
+    return session.exec(select(AnagraficaArticolo)).all()
 
 
 def get_all_ordes(session: Session) -> Sequence[Ordine]:

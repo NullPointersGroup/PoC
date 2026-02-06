@@ -1,8 +1,9 @@
 from fastapi import APIRouter, status, HTTPException
 from typing import Sequence
 from .schemas import SessionDep
-from .database import get_cart, remove_from_cart, clear_cart
+from .database import get_cart, remove_from_cart
 from .models import CarrelloDTO
+from .AI import invoke_cart_agent
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
@@ -20,8 +21,6 @@ def delete_cart_item(cod_art: str, session: SessionDep) -> dict[str, str]:
         )
     return {"status": "ok"}
 
-
-@router.delete("", status_code=status.HTTP_200_OK)
-def clear_cart_items(session: SessionDep) -> dict[str, str]:
-    clear_cart(session)
-    return {"status": "ok"}
+@router.get("/{user}")
+def query_cart_agent(user: str, message: str) -> Dict[str, Any] | Any:
+    return invoke_cart_agent(message)["messages"][-1].content
