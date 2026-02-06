@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Navbar from "./components/Navbar";
 import Chat from "./components/Chat";
 import type { CartItem } from "./types/cart";
@@ -9,7 +9,7 @@ function App() {
   const [isCarrelloOpen, setIsCarrelloOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const reloadCart = async () => {
+  const reloadCart = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/cart`);
       if (!res.ok) return;
@@ -25,27 +25,16 @@ function App() {
     } catch (error) {
       console.error("Errore nel caricamento carrello:", error);
     }
-  };
+  }, []);
 
-  const removeCartItem = async (id: string) => {
-    try {
-      await fetch(`${API_BASE_URL}/cart/${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
-      await reloadCart();
-    } catch (error) {
-      console.error("Errore nella rimozione dal carrello:", error);
-    }
-  };
-
-  const clearCart = async () => {
+  const clearCart = useCallback(async () => {
     try {
       await fetch(`${API_BASE_URL}/cart`, { method: "DELETE" });
       setCart([]);
     } catch (error) {
       console.error("Errore nella pulizia carrello:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     reloadCart();
@@ -57,7 +46,6 @@ function App() {
         isCarrelloOpen={isCarrelloOpen}
         setIsCarrelloOpen={setIsCarrelloOpen}
         cart={cart}
-        onRemoveItem={removeCartItem}
         onReloadCart={reloadCart}
         onClearCart={clearCart}
       />

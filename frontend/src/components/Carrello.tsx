@@ -4,7 +4,6 @@ interface CarrelloProps {
   isOpen: boolean;
   onClose: () => void;
   cart: CartItem[];
-  onRemoveItem: (itemId: string) => void;
   onClearCart: () => void;
 }
 
@@ -12,19 +11,9 @@ export default function Carrello({
   isOpen,
   onClose,
   cart,
-  onRemoveItem,
   onClearCart,
 }: CarrelloProps) {
   if (!isOpen) return null;
-
-  const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const handleConfirmOrder = async () => {
-    if (cart.length === 0) return;
-    await onClearCart();
-    onClose();
-    alert("Ordine inviato.");
-  };
 
   return (
     <>
@@ -74,14 +63,6 @@ export default function Carrello({
                     <h3 className="font-bold text-gray-800 flex-1 leading-tight">
                       {item.name}
                     </h3>
-
-                    <button
-                      onClick={() => onRemoveItem(item.id)}
-                      className="ml-2 p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Rimuovi"
-                    >
-                      <span className="text-lg">🗑️</span>
-                    </button>
                   </div>
 
                   <div className="flex items-end justify-between">
@@ -100,24 +81,7 @@ export default function Carrello({
           )}
         </div>
 
-        <div className="p-6 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-          {cart.length > 0 && (
-            <div className="mb-4 space-y-2">
-              <div className="flex justify-between items-center text-sm text-gray-500">
-                <span>Totale quantità:</span>
-                <span className="font-medium text-gray-700">{totalQuantity} pz</span>
-              </div>
-            </div>
-          )}
-
-          <button
-            disabled={cart.length === 0}
-            onClick={handleConfirmOrder}
-            className="w-full bg-blue-600 text-white rounded-xl py-4 text-base font-bold hover:bg-blue-700 active:scale-[0.98] disabled:bg-gray-200 disabled:text-gray-400 transition-all shadow-lg shadow-blue-200 disabled:shadow-none"
-          >
-            Invia Ordine
-          </button>
-        </div>
+        <div className="p-6 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]" />
       </div>
     </>
   );
