@@ -14,31 +14,9 @@ load_dotenv()
 OPEN_API_KEY = os.getenv("OPENAI_API_KEY")
 DB = SQLDatabase.from_uri(os.getenv("DATABASE_URL")) #type: ignore
 
-model = ChatOpenAI(model="gpt-4", temperature=0.1, api_key=OPEN_API_KEY) #type: ignore
+model = ChatOpenAI(model="gpt-5", temperature=0.1, api_key=OPEN_API_KEY) #type: ignore
 
 tools = SQLDatabaseToolkit(db=DB, llm=model).get_tools()
-
-
-system_prompt = """
-You are a SQL expert. Use this exact database schema:
-
-
-IMPORTANT RULES:
-- Write SQL queries directly using the schema above
-- DO NOT list tables with sql_db_list_tables
-- DO NOT check schema with sql_db_schema
-- DO NOT use sql_db_query_checker
-- Execute queries immediately with sql_db_query
-- Limit results to 5 unless specified
-
-Respond in Italian.
-"""
-
-agent = create_agent( #type: ignore
-    model=model,
-    tools=tools,
-    system_prompt=system_prompt,
-)
 
 cart_prompt = """
 Sei un esperto SQL e usa questo esatto schema db:
@@ -74,6 +52,7 @@ CREATE TABLE anaart (
 REGOLE IMPORTANTI:
 - Ti è consentito effettuare esclusivamente operazioni di INSERT, UPDATE e DELETE nella tabella "carrello"
 - Non ti è consentito effettuale operazioni di INSERT, UPDATE e DELETE nelle tabelle che non siano "carrello"
+- Non dire le operazioni che esegui e non dire bugie
 
 PASSAGGIO OBBLIGATORIO E BLOCCANTE – CONTEGGIO PRODOTTI:
 
@@ -131,14 +110,6 @@ cart_agent = create_agent( #type: ignore
     tools=tools,
     system_prompt=cart_prompt
 )
-
-
-def invoke_agent(question: str) -> Dict[str, Any] | Any: 
-    return agent.invoke({
-        "messages": [HumanMessage(content=question)],
-    }, {
-        "configurable": {"thread_id": "1"}
-    })
 
 def invoke_cart_agent(question: str) -> Dict[str, Any] | Any:
     return cart_agent.invoke({

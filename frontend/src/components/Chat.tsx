@@ -88,11 +88,6 @@ export default function Chat({ isCarrelloOpen }: ChatProps) {
                   : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-tl-none"
               }`}>
                 <p className="text-sm leading-relaxed whitespace-pre-wrap">{m.testo}</p>
-                {m.timestamp && (
-                  <p className={`text-[9px] mt-1 opacity-60 ${m.ruolo === "user" ? "text-right" : "text-left"}`}>
-                    {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                )}
               </div>
             </div>
           ))}
@@ -121,7 +116,7 @@ export default function Chat({ isCarrelloOpen }: ChatProps) {
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-3xl blur opacity-0 group-hover:opacity-20 transition-opacity"></div>
               <div className="relative bg-slate-50 border-2 border-slate-200 rounded-3xl flex items-center gap-2 px-4 py-2 focus-within:border-blue-500 focus-within:bg-white transition-all shadow-sm hover:shadow-md">
                 
-                <textarea
+                <textarea autoFocus
                   className="flex-1 bg-transparent border-none resize-none text-sm focus:outline-none placeholder:text-slate-400 max-h-32 py-1.5"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

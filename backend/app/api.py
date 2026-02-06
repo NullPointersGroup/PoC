@@ -7,7 +7,7 @@ from typing import Annotated, Sequence, Any, Dict
 from sqlmodel import Session, select, delete
 from .mex import create_conversation, get_messages, add_message
 from .cart import router as cart_router
-from .AI import invoke_agent
+from .AI import invoke_cart_agent
 
 app = FastAPI()
 
@@ -116,6 +116,6 @@ def read_messages(conv_id: int, session: SessionDep) -> Any:
 
 @app.get("/ai")
 def query_ai(message: str) -> dict[str, Any] | Any:
-    risposta = invoke_agent(message)
+    risposta = invoke_cart_agent(message)
     return risposta["messages"][-1]
 
