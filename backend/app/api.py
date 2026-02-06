@@ -33,11 +33,14 @@ def chat(req: ChatRequest, session: SessionDep) -> ChatReply:
     conv_id = req.conv_id or get_global_conversation(session)
 
     add_message(session, conv_id, RoleEnum.user, req.message)
-    reply = f"Hai scritto: {req.message}"
-    add_message(session, conv_id, RoleEnum.assistant, reply)
 
-    return ChatReply(reply=reply, conv_id=conv_id)
+    agent_reply = invoke_cart_agent(req.message)
 
+    reply_text = agent_reply["messages"][-1].content
+
+    add_message(session, conv_id, RoleEnum.assistant, reply_text)
+
+    return ChatReply(reply=reply_text, conv_id=conv_id)
 
 @app.post("/conversazioni/1/messaggi")
 def send_message(
@@ -112,10 +115,3 @@ def new_conversation(session: SessionDep) -> dict[str, int]:
 @app.get("/conversazioni/{conv_id}/messaggi", response_model=list[MessaggioOut])
 def read_messages(conv_id: int, session: SessionDep) -> Any:
     return get_messages(session, conv_id)
-
-
-@app.get("/ai")
-def query_ai(message: str) -> dict[str, Any] | Any:
-    risposta = invoke_cart_agent(message)
-    return risposta["messages"][-1]
-

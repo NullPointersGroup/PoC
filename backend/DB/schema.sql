@@ -55,16 +55,14 @@ CREATE TABLE ordclidet (
         FOREIGN KEY (cod_art) REFERENCES anaart(cod_art)
 );
 
-CREATE TABLE carrello(utente varchar(255), 
+CREATE TABLE carrello(
 		      prodotto varchar(13),
 		      quantita INTEGER,
-    CONSTRAINT fk_cart_utentiweb FOREIGN KEY (utente) REFERENCES utentiweb(username),
     CONSTRAINT fk_cart_anaart FOREIGN KEY (prodotto) REFERENCES anaart(cod_art),
-    PRIMARY KEY (utente, prodotto)
+    PRIMARY KEY (prodotto)
 );
 
 CREATE INDEX idx_carrello_prodotto ON carrello(prodotto);
-CREATE INDEX idx_carrello_utente ON carrello(utente);
 CREATE INDEX idx_anaart_des_art_trgm
 ON anaart USING GIN (des_art gin_trgm_ops);
 CREATE INDEX idx_messaggi_conversazione_id ON messaggi(conversazione_id);

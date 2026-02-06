@@ -5468,7 +5468,6 @@ INSERT INTO ordclidet (
     (28801, 'B0192', '2025-08-17', 18, NULL),
     (981387, 'B0192', '2025-08-17', 25, NULL);
 
-    INSERT INTO carrello(utente, prodotto, quantita) VALUES
-  ('carlesso@ergon.it', 'AC011', 5), 
-  ('santinon@ergon.it', 'AC011', 5),
-  ('santinon@ergon.it', 'AC060', 7);
+    INSERT INTO carrello(prodotto, quantita) VALUES
+    ('AC011', 5),
+    ('AC060', 7);
