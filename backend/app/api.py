@@ -1,9 +1,9 @@
-from fastapi import FastAPI, Depends, HTTPException, Path, status
+from fastapi import FastAPI, Path
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import AfterValidator
 from .database import *
 from .schemas import *
-from typing import Annotated, Sequence, Any, Dict
+from typing import Annotated, Sequence, Any
 from sqlmodel import Session, select, delete
 from .mex import create_conversation, get_messages, add_message
 from .cart import router as cart_router
@@ -41,22 +41,6 @@ def chat(req: ChatRequest, session: SessionDep) -> ChatReply:
     add_message(session, conv_id, RoleEnum.assistant, reply_text)
 
     return ChatReply(reply=reply_text, conv_id=conv_id)
-
-@app.post("/conversazioni/1/messaggi")
-def send_message(
-    payload: MessagePayload, session: SessionDep ) -> Dict[str, str]:
-    testo = payload.testo
-    if not testo:
-        return {"reply": "Messaggio vuoto"}
-
-    # Salva messaggio utente
-    add_message(session, conv_id=1, ruolo=RoleEnum.user, testo=testo)
-
-    # Genera risposta semplice dell'assistente
-    reply = f"Hai scritto: {testo}"
-    add_message(session, conv_id=1, ruolo=RoleEnum.assistant, testo=reply)
-
-    return {"reply": reply}
 
 @app.delete("/conversazioni/{conv_id}")
 def delete_conversation(

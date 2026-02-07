@@ -12,7 +12,6 @@ from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain.agents import create_agent
 from langchain.messages import HumanMessage
-from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 from sentence_transformers import SentenceTransformer #type: ignore
 
@@ -58,7 +57,6 @@ def _trova_vicini(
                 break
     return res
 
-# @tool
 def cerca_in_carrello(prodotto: str) -> List[Dict[str, str]] | str:
     """Cerca un prodotto nel carrello e restituisce i prodotti più vicini trovati. """
     # Il threshold deve essere un valore compreso tra 0.55 e 1.5 in base a quanto specifico è il prodotto. Con prodotto specifico intendo quanto è argomentato, per esempio 'acqua' è il minimo della specificità, mentre 'acqua uliveto pet 150'
@@ -126,7 +124,6 @@ dim = vectors.shape[1]
 _catalog_index = faiss.IndexFlatL2(dim)
 _catalog_index.add(vectors)
 
-# @tool
 def cerca_in_catalogo(prodotto: str) -> List[Dict[str, str]] | str:
     """Cerca un prodotto nel catalogo e restituisce i prodotti più vicini trovati. """
     query_vector = _transformer_model.encode(

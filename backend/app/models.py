@@ -70,4 +70,3 @@ class CarrelloDTO(SQLModel):
     prodotto: str
     quantita: int
     des_art: Optional[str] = None
-
