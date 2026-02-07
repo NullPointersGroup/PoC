@@ -1,17 +1,19 @@
 import os
 from dotenv import load_dotenv
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 
 from .database import get_cart, get_session, get_all_anagrafica_articolo
 from .models import *
 from openai import OpenAI
 import faiss #type: ignore
 import numpy as np
+import numpy.typing as npt
 
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
 from langchain.agents import create_agent
 from langchain.messages import HumanMessage
+from langchain.tools import tool
 from langchain_openai import ChatOpenAI
 from sentence_transformers import SentenceTransformer #type: ignore
 
@@ -23,7 +25,7 @@ load_dotenv()
 _OPEN_API_KEY = os.getenv("OPENAI_API_KEY")
 _DB = SQLDatabase.from_uri(os.getenv("DATABASE_URL")) #type: ignore
 
-_model = ChatOpenAI(model="gpt-4", temperature=0.1, api_key=_OPEN_API_KEY) #type: ignore
+_model = ChatOpenAI(model="gpt-5", temperature=0.1, api_key=_OPEN_API_KEY) #type: ignore
 
 _cart_texts = [
     (el.prodotto, el.des_art) 
@@ -36,10 +38,6 @@ _catalogo_texts = [
     for el in get_all_anagrafica_articolo(next(get_session()))
     if el.des_art is not None
 ]
-
-from typing import List, Dict, Tuple, Any
-import numpy as np
-import numpy.typing as npt
 
 def _trova_vicini(
     distances: npt.NDArray[np.float32], 
@@ -57,10 +55,13 @@ def _trova_vicini(
                 break
     return res
 
+@tool(description="Cerca un prodotto nel carrello e restituisce i prodotti più vicini trovati")
 def cerca_in_carrello(prodotto: str) -> List[Dict[str, str]] | str:
-    """Cerca un prodotto nel carrello e restituisce i prodotti più vicini trovati. """
-    # Il threshold deve essere un valore compreso tra 0.55 e 1.5 in base a quanto specifico è il prodotto. Con prodotto specifico intendo quanto è argomentato, per esempio 'acqua' è il minimo della specificità, mentre 'acqua uliveto pet 150'
-    # testi del carrello
+    # Il threshold deve essere un valore compreso tra 0.55 e 1.5 in base alla specificità del prodotto
+    
+    if not _cart_texts:
+        return []
+
     cart_des = [el[1] for el in _cart_texts]
 
     # embedding del carrello → (N, 384)
@@ -89,7 +90,7 @@ def cerca_in_carrello(prodotto: str) -> List[Dict[str, str]] | str:
     k = 5
     distances, indices = index.search(query_vector, k)
 
-    # soglie (ok tenerle così)
+    # soglie
     parole = prodotto.strip().split(" ")
     if len(parole) == 1:
         threshold = 1.4
@@ -100,14 +101,10 @@ def cerca_in_carrello(prodotto: str) -> List[Dict[str, str]] | str:
 
     vicini = _trova_vicini(distances, indices, _cart_texts, threshold)
 
-    print(indices, distances)
-
     if vicini:
         return vicini
 
-    return "Non c'è il prodotto richiesto nel carrello"
-
-print(cerca_in_carrello("acqua"))
+    return []
 
 # creazione statica, dato che il catalogo difficilmente cambia è più efficiente crearlo una sola volta
 # la creazione dell'index è abbastanza, per questo lo faccio
@@ -124,8 +121,8 @@ dim = vectors.shape[1]
 _catalog_index = faiss.IndexFlatL2(dim)
 _catalog_index.add(vectors)
 
-def cerca_in_catalogo(prodotto: str) -> List[Dict[str, str]] | str:
-    """Cerca un prodotto nel catalogo e restituisce i prodotti più vicini trovati. """
+@tool(description="Cerca un prodotto nel catalogo e restituisce i prodotti più vicini trovati")
+def cerca_in_catalogo(prodotto: str) -> List[Dict[str, str]]:
     query_vector = _transformer_model.encode(
         prodotto,
         convert_to_numpy=True,
@@ -147,17 +144,19 @@ def cerca_in_catalogo(prodotto: str) -> List[Dict[str, str]] | str:
         threshold = 0.55
 
     vicini = _trova_vicini(distances, indices, _catalogo_texts, threshold)
-    if len(vicini) > 0:
-        return vicini
-    return "Non c'è il prodotto richiesto nel carrello"
+    
+    # restituisce sempre lista; anche se non trova nulla, ritorna []
+    return vicini
 
 tools = SQLDatabaseToolkit(db=_DB, llm=_model).get_tools()
 tools.append(cerca_in_carrello) #type: ignore
 tools.append(cerca_in_catalogo) #type: ignore
 
 cart_prompt = """
-Sei un assistente SQL esperto. Devi generare query **solo** per aggiornare la tabella "carrello". 
+Sei un assistente SQL esperto. Devi generare query **solo** per aggiornare o fare SELECT sulla tabella "carrello". 
 Non inventare codici prodotto: usa esclusivamente i codici restituiti dai tool.
+
+Nel caso di testo non interpretabile, scrivi esattamente "Non ho capito la richiesta" e salta i passaggi successivi.
 
 Tool disponibili:
 
@@ -166,10 +165,34 @@ Tool disponibili:
 
 Logica da seguire:
 
+0. - Non descrivere né mostrare la query SQL né il processo interno.
+   - È vietato usare futuro, intenzioni, promesse, spiegazioni di processo o frasi preliminari.
+   - Ogni risposta deve descrivere esclusivamente lo stato finale già avvenuto.
+   - Qualsiasi risposta che non sia un esito finale è da considerarsi non valida.
+
 1. Estrai tutti i prodotti menzionati dall’utente.  
    - Se ci sono più di 10 prodotti distinti, rispondi solo:  
      "Puoi gestire al massimo 10 prodotti per messaggio."  
      e interrompi l’esecuzione.
+   - Se ti chiede di fare vedere i prodotti del carrello, mostraglieli tutti e non guardare i passi successivi.
+   - Rimozione di tutti gli articoli (regola obbligatoria)
+   - Alla richiesta di rimozione totale:
+
+    Esegui una SELECT sul carrello.
+
+    Se e solo se la SELECT restituisce almeno una riga, è consentito:
+
+    eseguire DELETE
+
+    rispondere:
+    Tutti i prodotti presenti nel carrello sono stati rimossi correttamente.
+
+    Se la SELECT restituisce zero righe, è consentito solo:
+
+    rispondere:
+    Il carrello è vuoto. Nessun articolo è stato rimosso.
+
+    Qualsiasi risposta di successo senza una SELECT con righe > 0 è non valida.
 
 2. Per ciascun prodotto menzionato:
 
@@ -190,11 +213,8 @@ Logica da seguire:
 
 4. Risposta all’utente:  
    - Indica solo l’esito finale: prodotto aggiornato, inserito o rimosso.  
-   - Non descrivere né mostrare la query SQL né il processo interno.
 
 """
-
-
 
 cart_agent = create_agent( #type: ignore
     model=_model,

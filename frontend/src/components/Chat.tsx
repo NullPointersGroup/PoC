@@ -18,6 +18,7 @@ export default function Chat({ isCarrelloOpen, onCartUpdated }: ChatProps) {
   const [input, setInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,6 +52,9 @@ export default function Chat({ isCarrelloOpen, onCartUpdated }: ChatProps) {
     };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    if (inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
     setIsProcessing(true);
 
     try {
@@ -127,6 +131,7 @@ export default function Chat({ isCarrelloOpen, onCartUpdated }: ChatProps) {
               <div className="relative bg-slate-50 border-2 border-slate-200 rounded-3xl flex items-center gap-2 px-4 py-2 focus-within:border-blue-500 focus-within:bg-white transition-all shadow-sm hover:shadow-md">
                 <textarea
                   autoFocus
+                  ref={inputRef}
                   className="flex-1 bg-transparent border-none resize-none text-sm focus:outline-none placeholder:text-slate-400 max-h-32 py-1.5"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
