@@ -149,8 +149,8 @@ def cerca_in_catalogo(prodotto: str) -> List[Dict[str, str]]:
     return vicini
 
 tools = SQLDatabaseToolkit(db=_DB, llm=_model).get_tools()
-tools.append(cerca_in_carrello) #type: ignore
-tools.append(cerca_in_catalogo) #type: ignore
+tools.append(cerca_in_carrello)
+tools.append(cerca_in_catalogo)
 
 cart_prompt = """
 Sei un assistente SQL esperto. Devi generare query **solo** per aggiornare o fare SELECT sulla tabella "carrello". 
