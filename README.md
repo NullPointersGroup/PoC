@@ -29,5 +29,6 @@ Se VsCode ancora non fornisce suggerimenti alle funzioni allora continuare a seg
 
 ---
 ## Analisi statica workflow
-Attualmente l'analisi statica è molto semplice, controlla solamente che ci siano tutti i vari tipi di ritorno corretti e che le funzioni abbiano i type hints
+Attualmente l'analisi statica è molto semplice, controlla solamente che ci siano tutti i vari tipi di ritorno corretti e che le funzioni abbiano i type hints.
+
 Per riprodurla in locale basta che facciate il comando "mypy"
